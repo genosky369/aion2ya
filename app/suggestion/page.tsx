@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Post } from '@/types';
 import PostCard from '@/components/PostCard';
 import { Plus, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
-export default function SuggestionPage() {
+function SuggestionContent() {
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get('search') || '';
 
@@ -95,5 +95,19 @@ export default function SuggestionPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SuggestionPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+        </div>
+      </div>
+    }>
+      <SuggestionContent />
+    </Suspense>
   );
 }
