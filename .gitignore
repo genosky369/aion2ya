@@ -42,3 +42,4 @@ next-env.d.ts
 
 # local data (Phase 1)
 /data/*.json
+.claude-backup/

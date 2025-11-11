@@ -112,9 +112,6 @@ export default function BoardWritePage() {
                 placeholder="비밀번호를 입력하세요"
                 required
               />
-              <p className="mt-1 text-xs text-gray-500">
-                관리자 비밀번호: admin1234
-              </p>
             </div>
           </div>
 

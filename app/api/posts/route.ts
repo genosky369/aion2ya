@@ -129,7 +129,16 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // 비밀번호 확인
+    // 1. 관리자 비밀번호 체크 (관리자는 모든 게시글 삭제 가능)
+    const isAdminPassword = isAdmin(password);
+
+    if (isAdminPassword) {
+      // 관리자 비밀번호가 맞으면 즉시 삭제
+      deletePost(id);
+      return NextResponse.json({ success: true, deletedBy: 'admin' });
+    }
+
+    // 2. 작성자 비밀번호 체크
     const { verifyPassword } = await import('@/lib/utils');
     const isPasswordValid = await verifyPassword(password, post.password);
 
@@ -142,7 +151,7 @@ export async function DELETE(request: NextRequest) {
 
     deletePost(id);
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, deletedBy: 'author' });
   } catch (error) {
     console.error('게시글 삭제 오류:', error);
     return NextResponse.json(

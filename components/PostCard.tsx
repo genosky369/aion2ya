@@ -21,9 +21,12 @@ export default function PostCard({ post, type }: PostCardProps) {
           <h3 className="text-lg font-medium text-white truncate">{post.title}</h3>
         </div>
         {post.isAdmin && (
-          <span className="ml-2 flex-shrink-0 inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-600 text-white">
-            <Shield className="w-3 h-3 mr-1" />
-            관리자
+          <span className="ml-2 flex-shrink-0 relative">
+            <span className="absolute inset-0 bg-gradient-to-r from-red-500 via-orange-500 to-red-500 rounded-md blur-sm opacity-75 animate-pulse"></span>
+            <span className="relative inline-flex items-center px-3 py-1 rounded-md text-xs font-bold bg-gradient-to-r from-red-600 via-orange-600 to-red-600 text-white border border-red-400 shadow-lg">
+              <Shield className="w-3 h-3 mr-1" />
+              ADMIN
+            </span>
           </span>
         )}
       </div>

@@ -12,33 +12,53 @@ export default function FAQSection() {
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-6 h-[600px] overflow-y-auto">
-      <h2 className="text-2xl font-bold mb-4 text-white">자주 묻는 질문</h2>
+    <div className="bg-slate-900 border border-cyan-500/30 rounded-lg p-6 h-[600px] overflow-y-auto custom-scrollbar shadow-lg shadow-cyan-500/10">
+      <h2 className="text-2xl font-bold mb-4 text-cyan-100">자주 묻는 질문</h2>
       <div className="space-y-3">
         {FAQ_DATA.map((faq) => (
           <div
             key={faq.id}
-            className="bg-gray-700 rounded-lg overflow-hidden transition-all"
+            className="bg-slate-800/50 border border-cyan-500/20 rounded-lg overflow-hidden transition-all hover:border-cyan-500/40 hover:shadow-cyan-500/10 hover:shadow-md"
           >
             <button
               onClick={() => toggleFAQ(faq.id)}
-              className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-600 transition-colors"
+              className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-slate-800 transition-colors"
             >
-              <span className="font-medium text-gray-100">{faq.question}</span>
+              <span className="font-medium text-cyan-100">{faq.question}</span>
               {openId === faq.id ? (
-                <ChevronUp className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                <ChevronUp className="w-5 h-5 text-cyan-400 flex-shrink-0" />
               ) : (
-                <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                <ChevronDown className="w-5 h-5 text-cyan-500/70 flex-shrink-0" />
               )}
             </button>
             {openId === faq.id && (
-              <div className="px-4 py-3 bg-gray-750 border-t border-gray-600">
-                <p className="text-gray-300 text-sm leading-relaxed">{faq.answer}</p>
+              <div className="px-4 py-3 bg-slate-900/50 border-t border-cyan-500/20">
+                <p className="text-cyan-200/80 text-sm leading-relaxed">{faq.answer}</p>
               </div>
             )}
           </div>
         ))}
       </div>
+
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgb(15 23 42 / 0.5);
+          border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: linear-gradient(to bottom, #06b6d4, #3b82f6);
+          border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(to bottom, #22d3ee, #60a5fa);
+        }
+      `}</style>
     </div>
   );
 }
