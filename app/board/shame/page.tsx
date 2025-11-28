@@ -24,6 +24,7 @@ interface ShamePostWithCount extends ShamePost {
 }
 
 export default function ShameBoardPage() {
+  const [mounted, setMounted] = useState(false);
   const [shamePosts, setShamePosts] = useState<ShamePostWithCount[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<ShamePostWithCount[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,6 +33,7 @@ export default function ShameBoardPage() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     // 관리자 권한 확인
     const token = localStorage.getItem('admin_token');
     setIsAdmin(!!token);
@@ -132,6 +134,20 @@ export default function ShameBoardPage() {
   }
 
   const servers = ['전체', '천족', '마족'];
+
+  // 클라이언트 마운트 전에는 로딩 상태 표시 (하이드레이션 불일치 방지)
+  if (!mounted) {
+    return (
+      <div className={`min-h-screen bg-gradient-to-br ${THEME.bg} text-white`}>
+        <main className="container mx-auto px-6 py-12">
+          <div className="text-center py-20">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            <p className="mt-4 text-slate-400">로딩 중...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${THEME.bg} text-white`}>
