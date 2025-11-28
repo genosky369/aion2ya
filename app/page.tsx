@@ -119,10 +119,10 @@ const SIMULATORS = [
   {
     id: 'stone',
     name: '마석/영석',
-    description: '마석 강화 시뮬레이터',
+    description: '자동 각인 기댓값 계산기',
     icon: Gem,
-    href: '/simulator/magic-stone',
-    available: false,
+    href: '/simulator/manastone',
+    available: true,
     color: 'from-emerald-500 to-teal-600',
   },
   {
