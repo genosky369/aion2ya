@@ -181,7 +181,7 @@ export default function PetComprehensionPage() {
   }
 
   const species_list = Object.keys(data.data.gradeByLevel);
-  const level_list = Object.keys(data.data.gradeByLevel[species] || {});
+  const level_list = Object.keys(data.data.gradeByLevel[species] || {}).filter(l => l !== '10');
   const nextCost = calculateNextCost();
 
   return (
