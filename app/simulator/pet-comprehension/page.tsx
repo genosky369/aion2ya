@@ -735,7 +735,7 @@ export default function PetComprehensionPage() {
                           <div className="text-xs text-muted-foreground mb-2">등급</div>
                           <div className="flex flex-wrap gap-2">
                             {getSelectedGrades().map((grade) => (
-                              <Badge key={grade} className={`${GRADE_COLORS[grade]} text-white`}>
+                              <Badge key={grade} className={`${GRADE_COLORS[grade as Grade]} text-white`}>
                                 {grade}
                               </Badge>
                             ))}
