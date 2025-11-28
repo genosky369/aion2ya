@@ -15,10 +15,14 @@ const THEME = {
   accent: 'from-red-600 to-orange-600',
 };
 
+interface ShamePostWithCount extends ShamePost {
+  calculatedReportCount: number;
+}
+
 export default function ShamePostDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [post, setPost] = useState<ShamePost | null>(null);
+  const [post, setPost] = useState<ShamePostWithCount | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,6 +33,7 @@ export default function ShamePostDetailPage() {
 
   async function fetchPost() {
     try {
+      // 현재 글 가져오기
       const { data, error } = await supabase
         .from('shame_posts')
         .select('*')
@@ -37,7 +42,20 @@ export default function ShamePostDetailPage() {
 
       if (error) throw error;
 
-      setPost(data);
+      // 동일 유저의 총 신고 글 개수 계산
+      const { count, error: countError } = await supabase
+        .from('shame_posts')
+        .select('*', { count: 'exact', head: true })
+        .eq('player_id', data.player_id)
+        .eq('server', data.server)
+        .eq('race', data.race);
+
+      if (countError) throw countError;
+
+      setPost({
+        ...data,
+        calculatedReportCount: count || 1
+      });
     } catch (error) {
       console.error('Error fetching post:', error);
       alert('게시글을 불러올 수 없습니다.');
@@ -88,7 +106,7 @@ export default function ShamePostDetailPage() {
                 {post.player_id}
               </Badge>
               <Badge variant="outline" className="border-red-700 text-red-400 text-lg px-4 py-2">
-                신고 {post.report_count}회
+                신고 {post.calculatedReportCount}회
               </Badge>
             </div>
 
@@ -143,40 +161,6 @@ export default function ShamePostDetailPage() {
           </Card>
         )}
 
-        {/* 추가 신고 버튼 */}
-        <Card className={`${THEME.card} border backdrop-blur-xl`}>
-          <CardContent className="py-6">
-            <div className="text-center">
-              <p className="text-slate-400 mb-4">
-                이 플레이어에게 피해를 입으셨나요?
-              </p>
-              <Button
-                className={`bg-gradient-to-r ${THEME.accent} hover:opacity-90`}
-                onClick={async () => {
-                  if (confirm('동일 플레이어를 추가 신고하시겠습니까?')) {
-                    try {
-                      const { error } = await supabase
-                        .from('shame_posts')
-                        .update({ report_count: post.report_count + 1 })
-                        .eq('id', post.id);
-
-                      if (error) throw error;
-
-                      alert('신고가 접수되었습니다.');
-                      fetchPost(); // 새로고침
-                    } catch (error) {
-                      console.error('Error updating report count:', error);
-                      alert('신고 중 오류가 발생했습니다.');
-                    }
-                  }
-                }}
-              >
-                <AlertCircle className="w-4 h-4 mr-2" />
-                추가 신고하기
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </main>
     </div>
   );

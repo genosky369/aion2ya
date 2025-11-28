@@ -18,9 +18,14 @@ const THEME = {
   textHover: 'hover:text-blue-300',
 };
 
+// 동일 유저의 신고 횟수를 계산하는 타입
+interface ShamePostWithCount extends ShamePost {
+  calculatedReportCount: number;
+}
+
 export default function ShameBoardPage() {
-  const [shamePosts, setShamePosts] = useState<ShamePost[]>([]);
-  const [filteredPosts, setFilteredPosts] = useState<ShamePost[]>([]);
+  const [shamePosts, setShamePosts] = useState<ShamePostWithCount[]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<ShamePostWithCount[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedServer, setSelectedServer] = useState<string>('전체');
@@ -47,7 +52,26 @@ export default function ShameBoardPage() {
 
       if (error) throw error;
 
-      setShamePosts(data || []);
+      // 동일 유저(player_id + server + race)별 신고 횟수 계산
+      const posts = data || [];
+      const countMap = new Map<string, number>();
+
+      // 먼저 각 유저별 글 개수를 계산
+      posts.forEach(post => {
+        const key = `${post.player_id}-${post.server}-${post.race}`;
+        countMap.set(key, (countMap.get(key) || 0) + 1);
+      });
+
+      // 각 글에 계산된 신고 횟수 추가
+      const postsWithCount: ShamePostWithCount[] = posts.map(post => {
+        const key = `${post.player_id}-${post.server}-${post.race}`;
+        return {
+          ...post,
+          calculatedReportCount: countMap.get(key) || 1
+        };
+      });
+
+      setShamePosts(postsWithCount);
     } catch (error) {
       console.error('Error fetching shame posts:', error);
     } finally {
@@ -197,7 +221,7 @@ export default function ShameBoardPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="border-red-700 text-red-400">
-                          신고 {post.report_count}회
+                          신고 {post.calculatedReportCount}회
                         </Badge>
                         {isAdmin && (
                           <Button
