@@ -127,11 +127,8 @@ export default function PetComprehensionPage() {
     const newTargets: TargetSlots = [];
 
     for (let i = 0; i < levelNum; i++) {
-      const slotKey = `${i + 1}번 슬롯`;
-      const options = data.data.optionByGrade[species]?.[slotKey]?.['영웅'];
-      const defaultOption = options?.[0]?.name || '';
-      // 각 슬롯에 하나의 목표로 시작
-      newTargets.push([{ grade: '영웅', option: defaultOption }]);
+      // 빈 배열로 시작 (아무것도 선택되지 않은 상태)
+      newTargets.push([]);
     }
 
     setTargetSlots(newTargets);
@@ -149,10 +146,8 @@ export default function PetComprehensionPage() {
       );
 
       if (existingIndex >= 0) {
-        // 이미 선택됨 -> 제거 (단, 최소 1개는 유지)
-        if (slotTargets.length > 1) {
-          slotTargets.splice(existingIndex, 1);
-        }
+        // 이미 선택됨 -> 제거
+        slotTargets.splice(existingIndex, 1);
       } else {
         // 선택되지 않음 -> 추가
         slotTargets.push({ grade, option });
@@ -184,6 +179,17 @@ export default function PetComprehensionPage() {
 
   const handleCalculate = async () => {
     if (!data) return;
+
+    // 검증: 모든 슬롯에 최소 1개의 목표가 있는지 확인
+    const emptySlots = targetSlots
+      .map((targets, index) => (targets.length === 0 ? index + 1 : null))
+      .filter(slot => slot !== null);
+
+    if (emptySlots.length > 0) {
+      alert(`슬롯 ${emptySlots.join(', ')}에 목표를 선택해주세요.`);
+      return;
+    }
+
     setCalculating(true);
     setCalcResult(null);
 
@@ -481,6 +487,11 @@ export default function PetComprehensionPage() {
                           })}
                         </div>
 
+                        {selectedCount === 0 && (
+                          <div className="mt-3 text-xs text-muted-foreground bg-yellow-50 dark:bg-yellow-950/20 p-2 rounded">
+                            ⚠️ 슬롯 {slotIndex + 1}에 최소 1개의 목표를 선택해주세요
+                          </div>
+                        )}
                         {selectedCount > 1 && (
                           <div className="mt-3 text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-2 rounded">
                             💡 이 중 하나만 얻으면 슬롯 {slotIndex + 1} 완료
