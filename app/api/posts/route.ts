@@ -70,14 +70,6 @@ export async function POST(request: NextRequest) {
     // 관리자 여부 확인
     const isAdminUser = isAdmin(password);
 
-    // 게시판은 관리자만 작성 가능
-    if (type === 'board' && !isAdminUser) {
-      return NextResponse.json(
-        { success: false, error: '게시판은 관리자만 작성할 수 있습니다.' },
-        { status: 403 }
-      );
-    }
-
     // 비밀번호 해싱
     const hashedPassword = await hashPassword(password);
 

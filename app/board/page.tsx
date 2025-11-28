@@ -14,8 +14,13 @@ function BoardContent() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    // 관리자 권한 확인
+    const token = localStorage.getItem('admin_token');
+    setIsAdmin(!!token);
+
     fetchPosts();
   }, []);
 
@@ -90,7 +95,13 @@ function BoardContent() {
       ) : (
         <div className="space-y-4">
           {filteredPosts.map((post) => (
-            <PostCard key={post.id} post={post} type="board" />
+            <PostCard
+              key={post.id}
+              post={post}
+              type="board"
+              isAdmin={isAdmin}
+              onDelete={fetchPosts}
+            />
           ))}
         </div>
       )}
