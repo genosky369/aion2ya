@@ -155,9 +155,87 @@ Final: 10% × 16.66% = 1.666%
 
 ---
 
+### 3. 관리자 시스템 및 업데이트 페이지 구현
+**작업 시간**: 2025-11-28 23:30 ~ (KST)
+**타입**: Feature (새 기능)
+**영향 범위**: 관리자 페이지, 업데이트 페이지, Supabase 연동
+
+#### 변경된 파일
+```
+# 신규 파일
+app/admin/login/page.tsx - 관리자 로그인 페이지
+app/admin/dashboard/page.tsx - 관리자 대시보드
+app/admin/updates/page.tsx - 업데이트 목록 관리
+app/admin/updates/new/page.tsx - 새 업데이트 작성
+app/admin/updates/edit/[id]/page.tsx - 업데이트 수정
+app/api/admin/login/route.ts - 로그인 API (JWT)
+app/updates/page.tsx - 업데이트 내역 페이지 (유저용)
+lib/supabase.ts - Supabase 클라이언트
+components/ui/label.tsx - Label 컴포넌트
+components/ui/select.tsx - Select 컴포넌트
+components/ui/textarea.tsx - Textarea 컴포넌트
+supabase/schema.sql - DB 스키마 정의
+
+# 수정 파일
+app/page.tsx - 메인 페이지 개선
+components/layout/Header.tsx - 헤더 개선
+components/layout/Footer.tsx - 푸터 개선
+config/navigation.ts - 네비게이션에 업데이트 메뉴 추가
+package.json - jsonwebtoken 의존성 추가
+```
+
+#### 주요 구현 사항
+
+##### 1. 관리자 인증 시스템
+- **JWT 기반 인증**: jsonwebtoken 사용
+- **환경변수 기반 계정**: ADMIN_USERNAME, ADMIN_PASSWORD
+- **토큰 유효기간**: 7일
+- **localStorage에 토큰 저장**
+
+##### 2. 관리자 대시보드
+- 통계 카드: 총 업데이트 수, 총 박제 글 수
+- 빠른 접근: 새 업데이트 작성, 업데이트 목록 관리
+- 박제 게시판 관리 링크
+
+##### 3. 업데이트 CRUD
+- **Create**: 제목, 카테고리(패치/라이브방송/이벤트/공지), 내용 작성
+- **Read**: 목록 조회, 카테고리 필터, 페이지네이션
+- **Update**: 기존 글 수정
+- **Delete**: 확인 후 삭제
+
+##### 4. 유저용 업데이트 페이지
+- `/updates` 경로
+- 카테고리별 필터링
+- 페이지네이션 (10개씩)
+- 날짜 포맷팅 (한국어)
+
+##### 5. Supabase 연동
+- `updates` 테이블: id, title, content, category, created_at, updated_at
+- `shame_posts` 테이블: 박제 게시판용 (향후 사용)
+- RLS (Row Level Security) 설정
+
+#### 기술적 특징
+1. **JWT 인증**: API Route에서 토큰 생성 및 검증
+2. **Supabase Client**: 클라이언트 사이드에서 직접 DB 접근
+3. **shadcn/ui**: Label, Select, Textarea 컴포넌트 추가
+4. **반응형 디자인**: 모바일/데스크탑 대응
+
+#### 수정된 버그
+- updates 페이지 Header/Footer 중복 렌더링 수정
+- named import → default import 변경
+
+#### 테스트 결과
+- ✅ 관리자 로그인 정상 동작
+- ✅ JWT 토큰 생성/저장 확인
+- ✅ 대시보드 통계 표시 확인
+- ✅ Supabase 테이블 연동 확인
+- ✅ 업데이트 페이지 렌더링 확인
+
+---
+
 ## 작업 요약
-- **총 커밋**: 1개
-- **신규 파일**: 4개 (1,072 lines)
-- **수정 파일**: 1개
-- **작업 시간**: 약 15분
+- **총 커밋**: 3개 (예정)
+- **신규 파일**: 15개+
+- **수정 파일**: 6개
+- **작업 시간**: 약 2시간
 - **상태**: ✅ 완료

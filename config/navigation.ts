@@ -12,34 +12,29 @@ export const navigation: NavItem[] = [
     icon: 'Home',
   },
   {
-    label: '가이드',
-    href: '/guides',
-    icon: 'BookOpen',
-    children: [
-      { label: '초보자 가이드', href: '/guides/beginner' },
-      { label: '레벨링 가이드', href: '/guides/leveling' },
-      { label: '클래스 가이드', href: '/guides/class' },
-    ],
-  },
-  {
-    label: '데이터베이스',
-    href: '/database',
-    icon: 'Database',
-    children: [
-      { label: '아이템', href: '/database/items' },
-      { label: '스킬', href: '/database/skills' },
-      { label: '던전', href: '/database/dungeons' },
-    ],
+    label: '업데이트 내역',
+    href: '/updates',
+    icon: 'Clock',
   },
   {
     label: '시뮬레이터',
-    href: '/simulator/pet-comprehension',
+    href: '/simulator',
     icon: 'Calculator',
+    children: [
+      { label: '펫 이해도', href: '/simulator/pet-comprehension' },
+      { label: '마석/영석', href: '/simulator/magic-stone' },
+      { label: '영혼 각인', href: '/simulator/soul-engraving' },
+    ],
+  },
+  {
+    label: '박제 게시판',
+    href: '/board/shame',
+    icon: 'Users',
   },
   {
     label: '커뮤니티',
     href: '/board',
-    icon: 'Users',
+    icon: 'MessageSquare',
   },
 ]
 
