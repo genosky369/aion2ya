@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Lock, Unlock, RotateCw, Calculator, Loader2, Plus, X } from 'lucide-react';
+import { Lock, Unlock, RotateCw, Calculator, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   PetData,
   SlotData,
@@ -49,6 +49,7 @@ export default function PetComprehensionPage() {
     trials: number;
     maxTrials: number;
   } | null>(null);
+  const [expandedGrades, setExpandedGrades] = useState<{ [key: string]: boolean }>({});
 
   // 데이터 로드
   useEffect(() => {
@@ -137,55 +138,48 @@ export default function PetComprehensionPage() {
     setCalcResult(null);
   };
 
-  const updateTargetGrade = (slotIndex: number, targetIndex: number, grade: string) => {
-    if (!data) return;
-    const slotKey = `${slotIndex + 1}번 슬롯`;
-    const options = data.data.optionByGrade[species]?.[slotKey]?.[grade];
-    const defaultOption = options?.[0]?.name || '';
-
+  const toggleTarget = (slotIndex: number, grade: string, option: string) => {
     setTargetSlots((prev) => {
       const newTargets = [...prev];
-      newTargets[slotIndex] = [...newTargets[slotIndex]];
-      newTargets[slotIndex][targetIndex] = { grade, option: defaultOption };
-      return newTargets;
-    });
-  };
+      const slotTargets = [...newTargets[slotIndex]];
 
-  const updateTargetOption = (slotIndex: number, targetIndex: number, option: string) => {
-    setTargetSlots((prev) => {
-      const newTargets = [...prev];
-      newTargets[slotIndex] = [...newTargets[slotIndex]];
-      newTargets[slotIndex][targetIndex] = { ...newTargets[slotIndex][targetIndex], option };
-      return newTargets;
-    });
-  };
+      // 이미 선택되어 있는지 확인
+      const existingIndex = slotTargets.findIndex(
+        t => t.grade === grade && t.option === option
+      );
 
-  const addTarget = (slotIndex: number) => {
-    if (!data) return;
-    const slotKey = `${slotIndex + 1}번 슬롯`;
-    const options = data.data.optionByGrade[species]?.[slotKey]?.['영웅'];
-    const defaultOption = options?.[0]?.name || '';
-
-    setTargetSlots((prev) => {
-      const newTargets = [...prev];
-      newTargets[slotIndex] = [...newTargets[slotIndex], { grade: '영웅', option: defaultOption }];
-      return newTargets;
-    });
-  };
-
-  const removeTarget = (slotIndex: number, targetIndex: number) => {
-    setTargetSlots((prev) => {
-      const newTargets = [...prev];
-      newTargets[slotIndex] = newTargets[slotIndex].filter((_, i) => i !== targetIndex);
-      // 최소 1개는 남겨야 함
-      if (newTargets[slotIndex].length === 0) {
-        const slotKey = `${slotIndex + 1}번 슬롯`;
-        const options = data?.data.optionByGrade[species]?.[slotKey]?.['영웅'];
-        const defaultOption = options?.[0]?.name || '';
-        newTargets[slotIndex] = [{ grade: '영웅', option: defaultOption }];
+      if (existingIndex >= 0) {
+        // 이미 선택됨 -> 제거 (단, 최소 1개는 유지)
+        if (slotTargets.length > 1) {
+          slotTargets.splice(existingIndex, 1);
+        }
+      } else {
+        // 선택되지 않음 -> 추가
+        slotTargets.push({ grade, option });
       }
+
+      newTargets[slotIndex] = slotTargets;
       return newTargets;
     });
+  };
+
+  const isTargetSelected = (slotIndex: number, grade: string, option: string): boolean => {
+    return targetSlots[slotIndex]?.some(
+      t => t.grade === grade && t.option === option
+    ) || false;
+  };
+
+  const toggleGradeExpand = (slotIndex: number, grade: string) => {
+    const key = `${slotIndex}-${grade}`;
+    setExpandedGrades(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  const isGradeExpanded = (slotIndex: number, grade: string): boolean => {
+    const key = `${slotIndex}-${grade}`;
+    return expandedGrades[key] ?? (grade === '영웅');
   };
 
   const handleCalculate = async () => {
@@ -415,84 +409,81 @@ export default function PetComprehensionPage() {
                 <div className="space-y-6">
                   {targetSlots.map((slotTargets, slotIndex) => {
                     const slotKey = `${slotIndex + 1}번 슬롯`;
+                    const selectedCount = slotTargets.length;
 
                     return (
                       <div key={slotIndex} className="border rounded-lg p-4 bg-muted/30">
                         <div className="flex justify-between items-center mb-4">
-                          <div className="text-sm font-medium">슬롯 {slotIndex + 1}</div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => addTarget(slotIndex)}
-                            className="h-8"
-                          >
-                            <Plus className="mr-1 h-3 w-3" />
-                            목표 추가
-                          </Button>
+                          <div>
+                            <div className="text-sm font-medium">슬롯 {slotIndex + 1}</div>
+                            <div className="text-xs text-muted-foreground">
+                              선택된 목표: {selectedCount}개
+                            </div>
+                          </div>
                         </div>
 
-                        <div className="space-y-3">
-                          {slotTargets.map((target, targetIndex) => {
-                            const availableOptions =
-                              data.data.optionByGrade[species]?.[slotKey]?.[target.grade] || [];
+                        <div className="space-y-4">
+                          {GRADES.map((grade) => {
+                            const options = data.data.optionByGrade[species]?.[slotKey]?.[grade] || [];
+                            const isExpanded = isGradeExpanded(slotIndex, grade);
+                            const selectedInGrade = options.filter(opt => isTargetSelected(slotIndex, grade, opt.name)).length;
 
                             return (
-                              <div
-                                key={targetIndex}
-                                className="flex gap-2 items-end p-3 bg-background rounded-md border"
-                              >
-                                <div className="flex-1 grid grid-cols-2 gap-2">
-                                  <div>
-                                    <label className="block text-xs font-medium mb-1">등급</label>
-                                    <select
-                                      value={target.grade}
-                                      onChange={(e) =>
-                                        updateTargetGrade(slotIndex, targetIndex, e.target.value)
-                                      }
-                                      className="w-full p-2 border rounded-md bg-background text-sm"
-                                    >
-                                      {GRADES.map((grade) => (
-                                        <option key={grade} value={grade}>
-                                          {grade}
-                                        </option>
-                                      ))}
-                                    </select>
+                              <div key={grade} className="border rounded-md">
+                                <button
+                                  onClick={() => toggleGradeExpand(slotIndex, grade)}
+                                  className="w-full flex items-center justify-between p-3 bg-background hover:bg-muted/50 transition-colors"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Badge className={`${GRADE_COLORS[grade]} text-white`}>
+                                      {grade}
+                                    </Badge>
+                                    <span className="text-xs text-muted-foreground">
+                                      {selectedInGrade}/{options.length} 선택
+                                    </span>
                                   </div>
-                                  <div>
-                                    <label className="block text-xs font-medium mb-1">옵션</label>
-                                    <select
-                                      value={target.option}
-                                      onChange={(e) =>
-                                        updateTargetOption(slotIndex, targetIndex, e.target.value)
-                                      }
-                                      className="w-full p-2 border rounded-md bg-background text-sm"
-                                    >
-                                      {availableOptions.map((opt) => (
-                                        <option key={opt.name} value={opt.name}>
-                                          {opt.name}
-                                        </option>
-                                      ))}
-                                    </select>
+                                  {isExpanded ? (
+                                    <ChevronUp className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4" />
+                                  )}
+                                </button>
+
+                                {isExpanded && (
+                                  <div className="p-3 space-y-2 bg-background/50">
+                                    {options.map((opt) => {
+                                      const isSelected = isTargetSelected(slotIndex, grade, opt.name);
+                                      return (
+                                        <label
+                                          key={opt.name}
+                                          className="flex items-center gap-2 cursor-pointer hover:bg-muted/30 p-2 rounded"
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={isSelected}
+                                            onChange={() => toggleTarget(slotIndex, grade, opt.name)}
+                                            className="w-4 h-4 cursor-pointer"
+                                          />
+                                          <div className="flex-1 flex justify-between items-center">
+                                            <span className="text-sm">{opt.name}</span>
+                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                              <span>{opt.valueRange}</span>
+                                              <span>({opt.probability.toFixed(1)}%)</span>
+                                            </div>
+                                          </div>
+                                        </label>
+                                      );
+                                    })}
                                   </div>
-                                </div>
-                                {slotTargets.length > 1 && (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => removeTarget(slotIndex, targetIndex)}
-                                    className="h-10 px-2"
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
                                 )}
                               </div>
                             );
                           })}
                         </div>
 
-                        {slotTargets.length > 1 && (
-                          <div className="mt-2 text-xs text-muted-foreground">
-                            이 중 하나만 얻으면 슬롯 완료
+                        {selectedCount > 1 && (
+                          <div className="mt-3 text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-2 rounded">
+                            💡 이 중 하나만 얻으면 슬롯 {slotIndex + 1} 완료
                           </div>
                         )}
                       </div>
