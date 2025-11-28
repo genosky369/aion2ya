@@ -80,18 +80,30 @@ export default function ShameBoardPage() {
     if (!confirm('정말 이 게시글을 삭제하시겠습니까?')) return;
 
     try {
-      const { error } = await supabase
-        .from('shame_posts')
-        .delete()
-        .eq('id', id);
+      const token = localStorage.getItem('admin_token');
+      if (!token) {
+        alert('관리자 로그인이 필요합니다.');
+        return;
+      }
 
-      if (error) throw error;
+      const response = await fetch(`/api/admin/shame/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || '삭제 실패');
+      }
 
       alert('게시글이 삭제되었습니다.');
       fetchShamePosts();
     } catch (error) {
       console.error('Error deleting post:', error);
-      alert('삭제 중 오류가 발생했습니다.');
+      alert(error instanceof Error ? error.message : '삭제 중 오류가 발생했습니다.');
     }
   }
 

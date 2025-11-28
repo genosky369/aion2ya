@@ -17,16 +17,6 @@ export const navigation: NavItem[] = [
     icon: 'Clock',
   },
   {
-    label: '시뮬레이터',
-    href: '/simulator',
-    icon: 'Calculator',
-    children: [
-      { label: '펫 이해도', href: '/simulator/pet-comprehension' },
-      { label: '마석/영석', href: '/simulator/magic-stone' },
-      { label: '영혼 각인', href: '/simulator/soul-engraving' },
-    ],
-  },
-  {
     label: '박제 게시판',
     href: '/board/shame',
     icon: 'Users',
