@@ -170,12 +170,13 @@ export function rollAllSlots(
 
 /**
  * 특정 조합을 얻기 위한 기댓값 계산 (몬테카를로)
+ * 각 슬롯마다 여러 목표 중 하나만 얻으면 OK
  */
 export function calculateExpectedCost(
   data: PetData,
   species: string,
   level: string,
-  targetCombination: Array<{ grade: string; option: string }>
+  targetCombination: Array<Array<{ grade: string; option: string }>>
 ): { expectedCost: number; trials: number; maxTrials: number } {
   const maxTrials = 100000; // 최대 시도 횟수
   let totalCost = 0;
@@ -184,7 +185,7 @@ export function calculateExpectedCost(
   for (let trial = 0; trial < maxTrials; trial++) {
     let slots: SlotData[] = [];
     let trialCost = 0;
-    const matched = new Set<number>(); // 매칭된 타겟 인덱스
+    const matched = new Set<number>(); // 매칭된 슬롯 인덱스
 
     // 목표 조합을 모두 얻을 때까지 리롤
     while (matched.size < targetCombination.length) {
@@ -193,17 +194,21 @@ export function calculateExpectedCost(
       slots = result.slots;
       trialCost += result.cost;
 
-      // 매칭 확인
-      for (let i = 0; i < slots.length; i++) {
-        const slot = slots[i];
-        for (let j = 0; j < targetCombination.length; j++) {
-          if (matched.has(j)) continue; // 이미 매칭됨
-          const target = targetCombination[j];
-          if (slot.grade === target.grade && slot.option === target.option) {
-            matched.add(j);
-            slots[i].locked = true; // 잠금
-            break;
-          }
+      // 매칭 확인: 각 슬롯에서 목표 중 하나만 맞으면 OK
+      for (let slotIndex = 0; slotIndex < slots.length; slotIndex++) {
+        if (matched.has(slotIndex)) continue; // 이미 매칭된 슬롯
+
+        const slot = slots[slotIndex];
+        const targets = targetCombination[slotIndex];
+
+        // 슬롯의 목표들 중 하나라도 맞는지 확인
+        const isMatch = targets.some(
+          target => slot.grade === target.grade && slot.option === target.option
+        );
+
+        if (isMatch) {
+          matched.add(slotIndex);
+          slots[slotIndex].locked = true; // 잠금
         }
       }
 

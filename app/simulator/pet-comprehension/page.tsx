@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Lock, Unlock, RotateCw, Calculator, Loader2 } from 'lucide-react';
+import { Lock, Unlock, RotateCw, Calculator, Loader2, Plus, X } from 'lucide-react';
 import {
   PetData,
   SlotData,
@@ -25,10 +25,12 @@ const GRADE_COLORS = {
   영웅: 'bg-orange-500',
 };
 
-interface TargetSlot {
+interface TargetOption {
   grade: string;
   option: string;
 }
+
+type TargetSlots = Array<TargetOption[]>;
 
 export default function PetComprehensionPage() {
   const [data, setData] = useState<PetData | null>(null);
@@ -40,7 +42,7 @@ export default function PetComprehensionPage() {
   const [totalCost, setTotalCost] = useState<number>(0);
 
   // 계산기 상태
-  const [targetSlots, setTargetSlots] = useState<TargetSlot[]>([]);
+  const [targetSlots, setTargetSlots] = useState<TargetSlots>([]);
   const [calculating, setCalculating] = useState(false);
   const [calcResult, setCalcResult] = useState<{
     expectedCost: number;
@@ -121,36 +123,67 @@ export default function PetComprehensionPage() {
   const initializeTargetSlots = () => {
     if (!data) return;
     const levelNum = parseInt(level);
-    const newTargets: TargetSlot[] = [];
+    const newTargets: TargetSlots = [];
 
     for (let i = 0; i < levelNum; i++) {
       const slotKey = `${i + 1}번 슬롯`;
       const options = data.data.optionByGrade[species]?.[slotKey]?.['영웅'];
       const defaultOption = options?.[0]?.name || '';
-      newTargets.push({ grade: '영웅', option: defaultOption });
+      // 각 슬롯에 하나의 목표로 시작
+      newTargets.push([{ grade: '영웅', option: defaultOption }]);
     }
 
     setTargetSlots(newTargets);
     setCalcResult(null);
   };
 
-  const updateTargetGrade = (index: number, grade: string) => {
+  const updateTargetGrade = (slotIndex: number, targetIndex: number, grade: string) => {
     if (!data) return;
-    const slotKey = `${index + 1}번 슬롯`;
+    const slotKey = `${slotIndex + 1}번 슬롯`;
     const options = data.data.optionByGrade[species]?.[slotKey]?.[grade];
     const defaultOption = options?.[0]?.name || '';
 
     setTargetSlots((prev) => {
       const newTargets = [...prev];
-      newTargets[index] = { grade, option: defaultOption };
+      newTargets[slotIndex] = [...newTargets[slotIndex]];
+      newTargets[slotIndex][targetIndex] = { grade, option: defaultOption };
       return newTargets;
     });
   };
 
-  const updateTargetOption = (index: number, option: string) => {
+  const updateTargetOption = (slotIndex: number, targetIndex: number, option: string) => {
     setTargetSlots((prev) => {
       const newTargets = [...prev];
-      newTargets[index] = { ...newTargets[index], option };
+      newTargets[slotIndex] = [...newTargets[slotIndex]];
+      newTargets[slotIndex][targetIndex] = { ...newTargets[slotIndex][targetIndex], option };
+      return newTargets;
+    });
+  };
+
+  const addTarget = (slotIndex: number) => {
+    if (!data) return;
+    const slotKey = `${slotIndex + 1}번 슬롯`;
+    const options = data.data.optionByGrade[species]?.[slotKey]?.['영웅'];
+    const defaultOption = options?.[0]?.name || '';
+
+    setTargetSlots((prev) => {
+      const newTargets = [...prev];
+      newTargets[slotIndex] = [...newTargets[slotIndex], { grade: '영웅', option: defaultOption }];
+      return newTargets;
+    });
+  };
+
+  const removeTarget = (slotIndex: number, targetIndex: number) => {
+    setTargetSlots((prev) => {
+      const newTargets = [...prev];
+      newTargets[slotIndex] = newTargets[slotIndex].filter((_, i) => i !== targetIndex);
+      // 최소 1개는 남겨야 함
+      if (newTargets[slotIndex].length === 0) {
+        const slotKey = `${slotIndex + 1}번 슬롯`;
+        const options = data?.data.optionByGrade[species]?.[slotKey]?.['영웅'];
+        const defaultOption = options?.[0]?.name || '';
+        newTargets[slotIndex] = [{ grade: '영웅', option: defaultOption }];
+      }
       return newTargets;
     });
   };
@@ -379,49 +412,89 @@ export default function PetComprehensionPage() {
                 <CardDescription>각 슬롯에서 달성하고자 하는 등급과 옵션을 선택하세요</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {targetSlots.map((target, index) => {
-                    const slotKey = `${index + 1}번 슬롯`;
-                    const availableOptions =
-                      data.data.optionByGrade[species]?.[slotKey]?.[target.grade] || [];
+                <div className="space-y-6">
+                  {targetSlots.map((slotTargets, slotIndex) => {
+                    const slotKey = `${slotIndex + 1}번 슬롯`;
 
                     return (
-                      <div key={index} className="border rounded-lg p-4 bg-muted/30">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                          <div>
-                            <div className="text-sm font-medium text-muted-foreground mb-1">
-                              슬롯 {index + 1}
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium mb-1">등급</label>
-                            <select
-                              value={target.grade}
-                              onChange={(e) => updateTargetGrade(index, e.target.value)}
-                              className="w-full p-2 border rounded-md bg-background text-sm"
-                            >
-                              {GRADES.map((grade) => (
-                                <option key={grade} value={grade}>
-                                  {grade}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium mb-1">옵션</label>
-                            <select
-                              value={target.option}
-                              onChange={(e) => updateTargetOption(index, e.target.value)}
-                              className="w-full p-2 border rounded-md bg-background text-sm"
-                            >
-                              {availableOptions.map((opt) => (
-                                <option key={opt.name} value={opt.name}>
-                                  {opt.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
+                      <div key={slotIndex} className="border rounded-lg p-4 bg-muted/30">
+                        <div className="flex justify-between items-center mb-4">
+                          <div className="text-sm font-medium">슬롯 {slotIndex + 1}</div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => addTarget(slotIndex)}
+                            className="h-8"
+                          >
+                            <Plus className="mr-1 h-3 w-3" />
+                            목표 추가
+                          </Button>
                         </div>
+
+                        <div className="space-y-3">
+                          {slotTargets.map((target, targetIndex) => {
+                            const availableOptions =
+                              data.data.optionByGrade[species]?.[slotKey]?.[target.grade] || [];
+
+                            return (
+                              <div
+                                key={targetIndex}
+                                className="flex gap-2 items-end p-3 bg-background rounded-md border"
+                              >
+                                <div className="flex-1 grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="block text-xs font-medium mb-1">등급</label>
+                                    <select
+                                      value={target.grade}
+                                      onChange={(e) =>
+                                        updateTargetGrade(slotIndex, targetIndex, e.target.value)
+                                      }
+                                      className="w-full p-2 border rounded-md bg-background text-sm"
+                                    >
+                                      {GRADES.map((grade) => (
+                                        <option key={grade} value={grade}>
+                                          {grade}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium mb-1">옵션</label>
+                                    <select
+                                      value={target.option}
+                                      onChange={(e) =>
+                                        updateTargetOption(slotIndex, targetIndex, e.target.value)
+                                      }
+                                      className="w-full p-2 border rounded-md bg-background text-sm"
+                                    >
+                                      {availableOptions.map((opt) => (
+                                        <option key={opt.name} value={opt.name}>
+                                          {opt.name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                </div>
+                                {slotTargets.length > 1 && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => removeTarget(slotIndex, targetIndex)}
+                                    className="h-10 px-2"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {slotTargets.length > 1 && (
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            이 중 하나만 얻으면 슬롯 완료
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -476,29 +549,37 @@ export default function PetComprehensionPage() {
 
                     <div>
                       <div className="text-sm font-medium mb-3">목표 조합</div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {targetSlots.map((target, index) => {
-                          const prob = calculateProbability(
-                            data,
-                            species,
-                            level,
-                            target.grade,
-                            target.option
+                      <div className="space-y-3">
+                        {targetSlots.map((slotTargets, slotIndex) => {
+                          // 슬롯의 각 목표 확률 계산
+                          const targetProbs = slotTargets.map(target =>
+                            calculateProbability(data, species, level, target.grade, target.option)
                           );
+                          // 슬롯 전체 확률 (OR 조건이므로 합산)
+                          const slotProb = targetProbs.reduce((sum, p) => sum + p, 0);
 
                           return (
-                            <div key={index} className="border rounded-lg p-3 bg-muted/30">
+                            <div key={slotIndex} className="border rounded-lg p-3 bg-muted/30">
                               <div className="text-xs text-muted-foreground mb-2">
-                                슬롯 {index + 1}
+                                슬롯 {slotIndex + 1} (전체 확률: {(slotProb * 100).toFixed(2)}%)
                               </div>
-                              <Badge
-                                className={`${GRADE_COLORS[target.grade as Grade]} text-white mb-2`}
-                              >
-                                {target.grade}
-                              </Badge>
-                              <div className="text-sm font-medium">{target.option}</div>
-                              <div className="text-xs text-muted-foreground mt-1">
-                                확률: {(prob * 100).toFixed(2)}%
+                              <div className="space-y-2">
+                                {slotTargets.map((target, targetIndex) => {
+                                  const prob = targetProbs[targetIndex];
+                                  return (
+                                    <div key={targetIndex} className="flex items-center gap-2">
+                                      <Badge
+                                        className={`${GRADE_COLORS[target.grade as Grade]} text-white`}
+                                      >
+                                        {target.grade}
+                                      </Badge>
+                                      <div className="text-sm font-medium flex-1">{target.option}</div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {(prob * 100).toFixed(2)}%
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           );

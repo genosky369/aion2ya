@@ -2,7 +2,78 @@
 
 ## 커밋 목록
 
-### 1. `8af3424` - Feat: 펫 이해도 시뮬레이터 및 계산기 구현
+### 1. `85c89f9` - Fix: 펫 이해도 시뮬레이터 레벨 선택 및 UI 개선
+**작업 시간**: 2025-11-28 13:15 ~ 13:20 (KST)
+**타입**: Bugfix (문제 수정)
+**영향 범위**: 시뮬레이터 UI, 데이터 변환
+
+#### 변경된 파일
+```
+scripts/convert_to_json.py (수정, +3 lines)
+public/data/pet-comprehension.json (재생성, 368 KB)
+app/simulator/pet-comprehension/page.tsx (통합, 547 lines)
+app/simulator/pet-comprehension/calculator/page.tsx (삭제)
+components/ui/tabs.tsx (신규, 93 lines)
+config/navigation.ts (수정)
+package.json, package-lock.json (tabs 의존성 추가)
+```
+
+#### 문제 및 해결
+
+##### 문제 1: 레벨 선택 불가 (1레벨만 선택 가능)
+**원인**: 엑셀 파일의 병합된 셀을 pandas가 첫 행에만 값을 넣고 나머지는 NaN 처리
+**해결**: `df_grade['종족'] = df_grade['종족'].ffill()` forward fill 적용
+**결과**:
+- 변환 전: 각 종족 1개 레벨 데이터
+- 변환 후: 각 종족 10개 레벨 데이터 (1~10)
+
+##### 문제 2: UI 분리 (시뮬레이터와 계산기가 별도 페이지)
+**원인**: 사용자 요청 - "계산기랑 시뮬레이터랑 한 화면에 볼 수 있도록"
+**해결**:
+- shadcn/ui Tabs 컴포넌트 설치 (`npx shadcn@latest add tabs`)
+- 단일 페이지에서 탭으로 전환
+- 공통 설정 (종족, 레벨) 상단에 배치
+**결과**:
+- 탭 1: 시뮬레이터 (리롤 체험)
+- 탭 2: 기댓값 계산기 (몬테카를로)
+- 페이지 이동 없이 탭 전환만으로 기능 사용
+
+#### 기술 구현
+
+**pandas forward fill**:
+```python
+df_grade['종족'] = df_grade['종족'].ffill()
+```
+병합된 셀의 NaN 값을 이전 행의 값으로 채움
+
+**Tabs UI 구조**:
+```tsx
+<Tabs defaultValue="simulator">
+  <TabsList>
+    <TabsTrigger value="simulator">시뮬레이터</TabsTrigger>
+    <TabsTrigger value="calculator">기댓값 계산기</TabsTrigger>
+  </TabsList>
+  <TabsContent value="simulator">...</TabsContent>
+  <TabsContent value="calculator">...</TabsContent>
+</Tabs>
+```
+
+**공통 상태 관리**:
+- `species`, `level`: 공통 설정
+- `slots`, `totalCost`: 시뮬레이터 전용
+- `targetSlots`, `calcResult`: 계산기 전용
+- 탭 전환 시 공통 설정 유지
+
+#### 개선 효과
+- ✅ 레벨 1~10 모두 선택 가능
+- ✅ 한 화면에서 시뮬레이터와 계산기 비교
+- ✅ 종족/레벨 설정 한 번만 입력
+- ✅ 네비게이션 구조 단순화
+- ✅ 페이지 로딩 시간 감소
+
+---
+
+### 2. `8af3424` - Feat: 펫 이해도 시뮬레이터 및 계산기 구현
 **작업 시간**: 2025-11-28 13:00 ~ 13:15 (KST)
 **타입**: Feature (새 기능)
 **영향 범위**: 시뮬레이터 시스템 전체
