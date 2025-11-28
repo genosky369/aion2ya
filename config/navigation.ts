@@ -33,12 +33,8 @@ export const navigation: NavItem[] = [
   },
   {
     label: '시뮬레이터',
-    href: '/simulator',
+    href: '/simulator/pet-comprehension',
     icon: 'Calculator',
-    children: [
-      { label: '펫 이해도 시뮬레이터', href: '/simulator/pet-comprehension' },
-      { label: '펫 이해도 계산기', href: '/simulator/pet-comprehension/calculator' },
-    ],
   },
   {
     label: '커뮤니티',

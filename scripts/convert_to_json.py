@@ -46,6 +46,9 @@ class ProbabilityConverter:
         print(f"   - 총 {len(df_grade)}행 로드")
         print(f"   - 컬럼: {list(df_grade.columns)}")
 
+        # 병합된 셀 처리 (forward fill)
+        df_grade['종족'] = df_grade['종족'].ffill()
+
         # 종족별로 그룹화
         for species in df_grade['종족'].dropna().unique():
             species_data = df_grade[df_grade['종족'] == species]
