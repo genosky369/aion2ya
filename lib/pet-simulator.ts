@@ -201,6 +201,13 @@ export function calculateExpectedCost(
         const slot = slots[slotIndex];
         const targets = targetCombination[slotIndex];
 
+        // 빈 배열이면 아무거나 OK (첫 리롤에서 무조건 매칭)
+        if (targets.length === 0) {
+          matched.add(slotIndex);
+          slots[slotIndex].locked = true;
+          continue;
+        }
+
         // 슬롯의 목표들 중 하나라도 맞는지 확인
         const isMatch = targets.some(
           target => slot.grade === target.grade && slot.option === target.option
