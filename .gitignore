@@ -44,4 +44,7 @@ next-env.d.ts
 /data/*.json
 .claude-backup/
 
+# 기획서 (엑셀 원본 데이터)
+기획서/
+
 .vercel
