@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import { getPostById, deletePost } from '@/lib/storage';
+import { supabase } from '@/lib/supabase';
 
 export async function DELETE(
   request: Request,
@@ -46,8 +46,13 @@ export async function DELETE(
     }
 
     // 게시글 존재 확인
-    const post = getPostById(id);
-    if (!post) {
+    const { data: post, error: fetchError } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !post) {
       return NextResponse.json(
         { error: '게시글을 찾을 수 없습니다.' },
         { status: 404 }
@@ -55,7 +60,17 @@ export async function DELETE(
     }
 
     // 삭제 실행
-    deletePost(id);
+    const { error: deleteError } = await supabase
+      .from('posts')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      return NextResponse.json(
+        { error: '삭제 중 오류가 발생했습니다.' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

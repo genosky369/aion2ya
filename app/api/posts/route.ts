@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Post, PostFormData } from '@/types';
-import { getPostsByType, addPost, getPostById, updatePost, deletePost } from '@/lib/storage';
+import { supabase, Post } from '@/lib/supabase';
 import { hashPassword, isAdmin, generateId } from '@/lib/utils';
 
 // GET: 게시글 목록 조회
@@ -12,8 +11,13 @@ export async function GET(request: NextRequest) {
 
     // 특정 게시글 조회
     if (id) {
-      const post = getPostById(id);
-      if (!post) {
+      const { data: post, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error || !post) {
         return NextResponse.json(
           { success: false, error: '게시글을 찾을 수 없습니다.' },
           { status: 404 }
@@ -21,10 +25,21 @@ export async function GET(request: NextRequest) {
       }
 
       // 조회수 증가
-      updatePost(id, { views: post.views + 1 });
-      const updatedPost = getPostById(id);
+      await supabase
+        .from('posts')
+        .update({ views: post.views + 1 })
+        .eq('id', id);
 
-      return NextResponse.json({ success: true, post: updatedPost });
+      // 프론트엔드 형식에 맞게 변환
+      const formattedPost = {
+        ...post,
+        type: post.post_type,
+        isAdmin: post.is_admin,
+        date: post.created_at,
+        commentCount: post.comment_count,
+      };
+
+      return NextResponse.json({ success: true, post: formattedPost });
     }
 
     // 게시글 목록 조회
@@ -35,8 +50,30 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const posts = getPostsByType(type);
-    return NextResponse.json({ success: true, posts });
+    const { data: posts, error } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('post_type', type)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('게시글 조회 오류:', error);
+      return NextResponse.json(
+        { success: false, error: '서버 오류가 발생했습니다.' },
+        { status: 500 }
+      );
+    }
+
+    // 프론트엔드 형식에 맞게 변환
+    const formattedPosts = (posts || []).map(post => ({
+      ...post,
+      type: post.post_type,
+      isAdmin: post.is_admin,
+      date: post.created_at,
+      commentCount: post.comment_count,
+    }));
+
+    return NextResponse.json({ success: true, posts: formattedPosts });
   } catch (error) {
     console.error('게시글 조회 오류:', error);
     return NextResponse.json(
@@ -49,7 +86,7 @@ export async function GET(request: NextRequest) {
 // POST: 게시글 작성
 export async function POST(request: NextRequest) {
   try {
-    const body: PostFormData = await request.json();
+    const body = await request.json();
     const { title, content, author, password, type } = body;
 
     // 유효성 검사
@@ -74,20 +111,29 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await hashPassword(password);
 
     // 게시글 생성
-    const newPost: Post = {
+    const newPost = {
       id: generateId(),
       title: title.trim(),
       content: content.trim(),
       author: isAdminUser ? '관리자' : author.trim(),
-      isAdmin: isAdminUser,
+      is_admin: isAdminUser,
       password: hashedPassword,
-      date: new Date().toISOString(),
+      post_type: type,
       views: 0,
-      commentCount: 0,
-      type,
+      comment_count: 0,
     };
 
-    addPost(newPost);
+    const { error } = await supabase
+      .from('posts')
+      .insert([newPost]);
+
+    if (error) {
+      console.error('게시글 작성 오류:', error);
+      return NextResponse.json(
+        { success: false, error: '게시글 작성에 실패했습니다.' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ success: true, post: newPost }, { status: 201 });
   } catch (error) {
@@ -113,8 +159,13 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const post = getPostById(id);
-    if (!post) {
+    const { data: post, error: fetchError } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !post) {
       return NextResponse.json(
         { success: false, error: '게시글을 찾을 수 없습니다.' },
         { status: 404 }
@@ -126,7 +177,7 @@ export async function DELETE(request: NextRequest) {
 
     if (isAdminPassword) {
       // 관리자 비밀번호가 맞으면 즉시 삭제
-      deletePost(id);
+      await supabase.from('posts').delete().eq('id', id);
       return NextResponse.json({ success: true, deletedBy: 'admin' });
     }
 
@@ -141,7 +192,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    deletePost(id);
+    await supabase.from('posts').delete().eq('id', id);
 
     return NextResponse.json({ success: true, deletedBy: 'author' });
   } catch (error) {

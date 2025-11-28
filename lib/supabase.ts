@@ -27,3 +27,16 @@ export interface Update {
   updated_at: string;
   author_id: string;
 }
+
+export interface Post {
+  id: string;
+  title: string;
+  content: string;
+  author: string;
+  is_admin: boolean;
+  password: string;
+  post_type: 'board' | 'suggestion';
+  views: number;
+  comment_count: number;
+  created_at: string;
+}
