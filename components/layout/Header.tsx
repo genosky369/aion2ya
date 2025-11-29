@@ -30,7 +30,7 @@ export default function Header() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="transition-colors hover:text-foreground/80 text-foreground/60"
+                className="transition-colors hover:text-white text-white/90"
               >
                 {item.label}
               </Link>
@@ -38,7 +38,7 @@ export default function Header() {
               <div key={item.href} className="relative group">
                 <Link
                   href={item.href}
-                  className="transition-colors hover:text-foreground/80 text-foreground/60"
+                  className="transition-colors hover:text-white text-white/90"
                 >
                   {item.label}
                 </Link>
@@ -68,7 +68,7 @@ export default function Header() {
               <div key={item.href}>
                 <Link
                   href={item.href}
-                  className="text-foreground/60 hover:text-foreground transition-colors block"
+                  className="text-white/90 hover:text-white transition-colors block"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {item.label}
@@ -79,7 +79,7 @@ export default function Header() {
                       <Link
                         key={child.href}
                         href={child.href}
-                        className="text-foreground/40 hover:text-foreground/60 transition-colors text-sm block"
+                        className="text-white/70 hover:text-white transition-colors text-sm block"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
                         {child.label}

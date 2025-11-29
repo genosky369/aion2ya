@@ -103,10 +103,7 @@ export default function ShameRanking({ limit = 5, showTitle = true, compact = fa
       <Card className={`${THEME.card} border backdrop-blur-xl`}>
         {showTitle && (
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-yellow-400" />
-              박제 랭킹
-            </CardTitle>
+            <CardTitle className="text-lg">박제 랭킹</CardTitle>
           </CardHeader>
         )}
         <CardContent>
@@ -123,10 +120,7 @@ export default function ShameRanking({ limit = 5, showTitle = true, compact = fa
       <Card className={`${THEME.card} border backdrop-blur-xl`}>
         {showTitle && (
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-yellow-400" />
-              박제 랭킹
-            </CardTitle>
+            <CardTitle className="text-lg">박제 랭킹</CardTitle>
           </CardHeader>
         )}
         <CardContent>

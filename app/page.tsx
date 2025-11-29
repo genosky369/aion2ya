@@ -5,14 +5,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Calculator,
-  Gem,
-  Heart,
-  ExternalLink,
-  Clock,
-  Users
-} from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import ShameRanking from '@/components/ShameRanking';
 
@@ -73,19 +66,15 @@ const SIMULATORS = [
     id: 'pet',
     name: '펫 이해도',
     description: '펫 스탯 리롤 시뮬레이터 & 기댓값 계산기',
-    icon: Heart,
     href: '/simulator/pet-comprehension',
     available: true,
-    color: 'from-rose-500 to-pink-600',
   },
   {
     id: 'stone',
     name: '마석/영석',
     description: '자동 각인 기댓값 계산기',
-    icon: Gem,
     href: '/simulator/manastone',
     available: true,
-    color: 'from-emerald-500 to-teal-600',
   },
 ];
 
@@ -153,14 +142,9 @@ export default function HomePage() {
               <div className={`h-1 bg-gradient-to-r ${THEME.accent}`} />
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg bg-gradient-to-br ${THEME.accent}`}>
-                      <Clock className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-2xl">📝 업데이트 & 라이브 요약</CardTitle>
-                      <CardDescription className="text-slate-400">운영진이 직접 작성하는 소식</CardDescription>
-                    </div>
+                  <div>
+                    <CardTitle className="text-2xl">업데이트 & 라이브 요약</CardTitle>
+                    <CardDescription className="text-slate-400">운영진이 직접 작성하는 소식</CardDescription>
                   </div>
                   <Badge className="bg-green-500/20 text-green-400 border-green-500/30">관리자 작성</Badge>
                 </div>
@@ -196,41 +180,30 @@ export default function HomePage() {
             {/* 시뮬레이터 섹션 */}
             <Card className={`${THEME.card} border backdrop-blur-xl shadow-xl`}>
               <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg bg-gradient-to-br ${THEME.accent}`}>
-                    <Calculator className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-2xl">🎮 시뮬레이터</CardTitle>
-                    <CardDescription className="text-slate-400">정확한 확률 계산과 시뮬레이션</CardDescription>
-                  </div>
+                <div>
+                  <CardTitle className="text-2xl">시뮬레이터</CardTitle>
+                  <CardDescription className="text-slate-400">정확한 확률 계산과 시뮬레이션</CardDescription>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {SIMULATORS.map((sim) => {
-                    const Icon = sim.icon;
-                    return (
-                      <Link
-                        key={sim.id}
-                        href={sim.available ? sim.href : '#'}
-                        className={`group ${!sim.available && 'pointer-events-none opacity-60'}`}
-                      >
-                        <div className={`${THEME.card} ${THEME.cardHover} border rounded-xl p-6 transition-all duration-300 ${sim.available && 'hover:scale-105 hover:shadow-2xl'}`}>
-                          <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${sim.color} flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl transition-all`}>
-                            <Icon className="w-7 h-7 text-white" />
-                          </div>
-                          <h3 className="font-bold text-lg mb-2 group-hover:text-blue-400 transition-colors">{sim.name}</h3>
-                          <p className="text-sm text-slate-400 leading-relaxed">{sim.description}</p>
-                          {!sim.available && (
-                            <Badge variant="outline" className="mt-4 text-xs border-slate-700 text-slate-500">
-                              준비중
-                            </Badge>
-                          )}
-                        </div>
-                      </Link>
-                    );
-                  })}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {SIMULATORS.map((sim) => (
+                    <Link
+                      key={sim.id}
+                      href={sim.available ? sim.href : '#'}
+                      className={`group ${!sim.available && 'pointer-events-none opacity-60'}`}
+                    >
+                      <div className={`${THEME.card} ${THEME.cardHover} border rounded-xl p-5 transition-all duration-300 ${sim.available && 'hover:scale-[1.02] hover:shadow-xl hover:border-blue-700/50'}`}>
+                        <h3 className="font-bold text-lg mb-1 group-hover:text-blue-400 transition-colors">{sim.name}</h3>
+                        <p className="text-sm text-slate-400">{sim.description}</p>
+                        {!sim.available && (
+                          <Badge variant="outline" className="mt-3 text-xs border-slate-700 text-slate-500">
+                            준비중
+                          </Badge>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -241,16 +214,9 @@ export default function HomePage() {
             {/* 박제 게시판 */}
             <Card className={`${THEME.card} border backdrop-blur-xl shadow-xl`}>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg bg-gradient-to-br from-red-600 to-orange-600`}>
-                      <Users className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-2xl">🚨 박제 게시판</CardTitle>
-                      <CardDescription className="text-slate-400">비매너 유저 공유 및 검색</CardDescription>
-                    </div>
-                  </div>
+                <div>
+                  <CardTitle className="text-2xl">박제 게시판</CardTitle>
+                  <CardDescription className="text-slate-400">비매너 유저 공유 및 검색</CardDescription>
                 </div>
               </CardHeader>
               <CardContent>
