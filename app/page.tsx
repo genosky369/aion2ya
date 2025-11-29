@@ -196,7 +196,7 @@ export default function HomePage() {
         className="fixed right-[5%] top-1/2 -translate-y-1/2 z-50 hidden xl:block hover:scale-[1.02] transition-transform"
       >
         <Image
-          src="/rightmalrang.jpg"
+          src="/rightmalrang02.jpg"
           alt="말랑이 인스타그램"
           width={200}
           height={600}
