@@ -14,6 +14,7 @@ import {
   Users
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import ShameRanking from '@/components/ShameRanking';
 
 // 모던하고 세련된 색상 테마
 const THEME = {
@@ -318,6 +319,9 @@ export default function HomePage() {
                 </Link>
               </CardContent>
             </Card>
+
+            {/* 박제 랭킹 */}
+            <ShameRanking limit={5} showTitle={true} />
           </div>
         </div>
       </main>
