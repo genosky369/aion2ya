@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase, Post } from '@/lib/supabase';
 import { hashPassword, isAdmin, generateId } from '@/lib/utils';
+import jwt from 'jsonwebtoken';
+
+// JWT 토큰으로 관리자 확인
+function isAdminByToken(request: NextRequest): boolean {
+  try {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return false;
+    }
+
+    const token = authHeader.split(' ')[1];
+    const JWT_SECRET = process.env.JWT_SECRET;
+    if (!JWT_SECRET) return false;
+
+    const decoded = jwt.verify(token, JWT_SECRET) as { username: string; role: string };
+    return decoded.role === 'admin';
+  } catch {
+    return false;
+  }
+}
 
 // GET: 게시글 목록 조회
 export async function GET(request: NextRequest) {
@@ -69,9 +89,17 @@ export async function GET(request: NextRequest) {
       ...post,
       type: post.post_type,
       isAdmin: post.is_admin,
+      isPinned: post.is_pinned || false,
       date: post.created_at,
       commentCount: post.comment_count,
     }));
+
+    // 공지글을 최상단으로 정렬
+    formattedPosts.sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return 0;
+    });
 
     return NextResponse.json({ success: true, posts: formattedPosts });
   } catch (error) {
@@ -87,12 +115,23 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, content, author, password, type } = body;
+    const { title, content, author, password, type, isAdminPost } = body;
 
-    // 유효성 검사
-    if (!title || !content || !author || !password || !type) {
+    // JWT 토큰으로 관리자 여부 확인
+    const isAdminByJWT = isAdminByToken(request);
+
+    // 유효성 검사 (관리자는 비밀번호 불필요)
+    if (!title || !content || !author || !type) {
       return NextResponse.json(
         { success: false, error: '모든 필드를 입력해주세요.' },
+        { status: 400 }
+      );
+    }
+
+    // 관리자가 아닌 경우 비밀번호 필수
+    if (!isAdminByJWT && !password) {
+      return NextResponse.json(
+        { success: false, error: '비밀번호를 입력해주세요.' },
         { status: 400 }
       );
     }
@@ -104,11 +143,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 관리자 여부 확인
-    const isAdminUser = isAdmin(password);
+    // 관리자 여부 확인 (JWT 토큰 또는 비밀번호 기반)
+    const isAdminUser = isAdminByJWT || isAdmin(password || '');
 
-    // 비밀번호 해싱
-    const hashedPassword = await hashPassword(password);
+    // 비밀번호 해싱 (관리자는 더미 비밀번호 사용)
+    const hashedPassword = await hashPassword(password || 'admin_no_password');
 
     // 게시글 생성
     const newPost = {

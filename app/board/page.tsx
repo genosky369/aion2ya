@@ -101,6 +101,7 @@ function BoardContent() {
               type="board"
               isAdmin={isAdmin}
               onDelete={fetchPosts}
+              onPinChange={fetchPosts}
             />
           ))}
         </div>

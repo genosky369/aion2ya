@@ -5,6 +5,7 @@ export interface Post {
   content: string;
   author: string;
   isAdmin: boolean;
+  isPinned: boolean;
   password: string; // 해시화된 비밀번호
   date: string;
   views: number;

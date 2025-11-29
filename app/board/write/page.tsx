@@ -1,19 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Shield } from 'lucide-react';
 import Link from 'next/link';
 
 export default function BoardWritePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     content: '',
     author: '',
     password: '',
   });
+
+  useEffect(() => {
+    // 관리자 로그인 여부 확인
+    const token = localStorage.getItem('admin_token');
+    if (token) {
+      setIsAdmin(true);
+      setFormData(prev => ({ ...prev, author: '관리자' }));
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +40,8 @@ export default function BoardWritePage() {
       alert('닉네임을 입력해주세요.');
       return;
     }
-    if (!formData.password) {
+    // 관리자가 아닌 경우에만 비밀번호 체크
+    if (!isAdmin && !formData.password) {
       alert('비밀번호를 입력해주세요.');
       return;
     }
@@ -38,14 +49,23 @@ export default function BoardWritePage() {
     setLoading(true);
 
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // 관리자인 경우 토큰 추가
+      const token = localStorage.getItem('admin_token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch('/api/posts', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           ...formData,
           type: 'board',
+          isAdminPost: isAdmin, // 관리자 글 여부 전달
         }),
       });
 
@@ -81,6 +101,14 @@ export default function BoardWritePage() {
           </div>
         </div>
 
+        {/* 관리자 모드 표시 */}
+        {isAdmin && (
+          <div className="flex items-center gap-2 p-4 bg-gradient-to-r from-red-900/30 to-orange-900/30 border border-red-600/50 rounded-lg">
+            <Shield className="w-5 h-5 text-red-400" />
+            <span className="text-red-400 font-medium">관리자 모드로 작성합니다</span>
+          </div>
+        )}
+
         {/* 폼 */}
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* 닉네임 & 비밀번호 */}
@@ -94,23 +122,25 @@ export default function BoardWritePage() {
                 type="text"
                 value={formData.author}
                 onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isAdmin ? 'opacity-60' : ''}`}
                 placeholder="닉네임을 입력하세요"
                 required
+                disabled={isAdmin}
               />
             </div>
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                비밀번호
+                비밀번호 {isAdmin && <span className="text-gray-500">(관리자는 입력 불필요)</span>}
               </label>
               <input
                 id="password"
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="비밀번호를 입력하세요"
-                required
+                className={`w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isAdmin ? 'opacity-60' : ''}`}
+                placeholder={isAdmin ? "관리자 토큰 사용" : "비밀번호를 입력하세요"}
+                required={!isAdmin}
+                disabled={isAdmin}
               />
             </div>
           </div>

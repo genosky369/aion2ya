@@ -14,8 +14,11 @@ function SuggestionContent() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    const token = localStorage.getItem('admin_token');
+    setIsAdmin(!!token);
     fetchPosts();
   }, []);
 
@@ -90,7 +93,14 @@ function SuggestionContent() {
       ) : (
         <div className="space-y-4">
           {filteredPosts.map((post) => (
-            <PostCard key={post.id} post={post} type="suggestion" />
+            <PostCard
+              key={post.id}
+              post={post}
+              type="suggestion"
+              isAdmin={isAdmin}
+              onDelete={fetchPosts}
+              onPinChange={fetchPosts}
+            />
           ))}
         </div>
       )}
