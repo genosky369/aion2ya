@@ -94,18 +94,31 @@ export default function NewShamePostPage() {
         screenshot_url = urlData.publicUrl;
       }
 
-      // 게시글 생성
-      const { error: insertError } = await supabase
-        .from('shame_posts')
-        .insert([
-          {
-            ...formData,
-            screenshot_url,
-            report_count: 1,
-          },
-        ]);
+      // API를 통해 게시글 생성 (IP 제한 체크 포함)
+      const response = await fetch('/api/shame', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          screenshot_url,
+        }),
+      });
 
-      if (insertError) throw insertError;
+      const result = await response.json();
+
+      if (!response.ok) {
+        // 제한에 걸린 경우 사용자에게 명확한 메시지 표시
+        if (result.errorType === 'DAILY_LIMIT_EXCEEDED') {
+          alert('⚠️ 일일 박제 제한\n\n' + result.error);
+        } else if (result.errorType === 'DUPLICATE_REPORT') {
+          alert('⚠️ 중복 신고 불가\n\n' + result.error);
+        } else {
+          alert(result.error || '박제 중 오류가 발생했습니다.');
+        }
+        return;
+      }
 
       alert('박제가 완료되었습니다!');
       router.push('/board/shame');
