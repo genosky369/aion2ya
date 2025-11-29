@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Calculator,
-  Sparkles,
   Gem,
   Heart,
   ExternalLink,
@@ -124,15 +123,6 @@ const SIMULATORS = [
     href: '/simulator/manastone',
     available: true,
     color: 'from-emerald-500 to-teal-600',
-  },
-  {
-    id: 'engrave',
-    name: '영혼 각인',
-    description: '영혼 각인 조합 계산기',
-    icon: Sparkles,
-    href: '/simulator/soul-engraving',
-    available: false,
-    color: 'from-amber-500 to-orange-600',
   },
 ];
 
@@ -252,7 +242,7 @@ export default function HomePage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {SIMULATORS.map((sim) => {
                     const Icon = sim.icon;
                     return (
