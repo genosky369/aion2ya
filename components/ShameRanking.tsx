@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Medal, Award } from 'lucide-react';
@@ -189,13 +188,6 @@ export default function ShameRanking({ limit = 5, showTitle = true, compact = fa
           ))}
         </div>
 
-        {!compact && (
-          <Link href="/board/shame">
-            <div className="mt-4 text-center text-sm text-slate-500 hover:text-slate-300 transition-colors cursor-pointer">
-              전체 보기 →
-            </div>
-          </Link>
-        )}
       </CardContent>
     </Card>
   );
