@@ -231,8 +231,8 @@ export default function HomePage() {
                       href={sim.available ? sim.href : '#'}
                       className={`group ${!sim.available && 'pointer-events-none opacity-60'}`}
                     >
-                      <div className={`${THEME.card} ${THEME.cardHover} border rounded-xl p-5 transition-all duration-300 ${sim.available && 'hover:scale-[1.02] hover:shadow-xl hover:border-blue-700/50'}`}>
-                        <h3 className="font-bold text-lg mb-1 group-hover:text-blue-400 transition-colors">{sim.name}</h3>
+                      <div className={`border rounded-xl p-5 transition-all duration-300 ${sim.available ? 'bg-gradient-to-br from-blue-900/30 to-violet-900/30 border-blue-700/40 hover:border-blue-500/60 hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-500/10' : `${THEME.card} border-slate-700`}`}>
+                        <h3 className="font-bold text-lg mb-1 group-hover:text-blue-300 transition-colors">{sim.name}</h3>
                         <p className="text-sm text-slate-400">{sim.description}</p>
                         {!sim.available && (
                           <Badge variant="outline" className="mt-3 text-xs border-slate-700 text-slate-500">

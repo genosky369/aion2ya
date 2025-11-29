@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Plus, AlertCircle, Trash2 } from 'lucide-react';
+import { Search, Plus, Trash2 } from 'lucide-react';
 import { supabase, ShamePost } from '@/lib/supabase';
 import ShameRanking from '@/components/ShameRanking';
 
@@ -139,15 +139,8 @@ export default function ShameBoard() {
       <main className="container mx-auto px-6 py-12">
         {/* 헤더 */}
         <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-red-600 to-orange-600 shadow-lg">
-              <AlertCircle className="w-8 h-8" />
-            </div>
-            <div>
-              <h1 className="text-4xl font-bold">🚨 박제 게시판</h1>
-              <p className="text-slate-400 mt-1">비매너 유저 공유 및 검색</p>
-            </div>
-          </div>
+          <h1 className="text-4xl font-bold">박제 게시판</h1>
+          <p className="text-slate-400 mt-2">비매너 유저 공유 및 검색</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">

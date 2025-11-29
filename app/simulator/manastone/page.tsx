@@ -9,7 +9,7 @@ import {
   GRADE_ORDER,
   GRADE_COLORS
 } from '@/lib/data/manaStoneData';
-import { Gem, Calculator, Info } from 'lucide-react';
+import { Calculator, Info } from 'lucide-react';
 
 const THEME = {
   bg: 'from-slate-950 via-slate-900 to-slate-950',
@@ -130,15 +130,8 @@ export default function ManaStoneCalculator() {
       <main className="container mx-auto px-6 py-12">
         {/* 헤더 */}
         <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-purple-600 to-pink-600 shadow-lg">
-              <Gem className="w-8 h-8" />
-            </div>
-            <div>
-              <h1 className="text-4xl font-bold">마석/영석 계산기</h1>
-              <p className="text-slate-400 mt-1">자동 각인 기댓값 계산</p>
-            </div>
-          </div>
+          <h1 className="text-4xl font-bold">마석/영석 계산기</h1>
+          <p className="text-slate-400 mt-2">자동 각인 기댓값 계산</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
