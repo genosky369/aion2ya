@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Post } from '@/types';
-import { ArrowLeft, Eye, MessageCircle, Shield, Trash2, Loader2 } from 'lucide-react';
+import { Post, Comment } from '@/types';
+import { ArrowLeft, Eye, MessageCircle, Shield, Trash2, Loader2, Send } from 'lucide-react';
 import Link from 'next/link';
 import { getRelativeTime } from '@/lib/utils';
 
@@ -18,8 +18,18 @@ export default function BoardDetailPage() {
   const [deletePassword, setDeletePassword] = useState('');
   const [deleting, setDeleting] = useState(false);
 
+  // 댓글 관련 상태
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [commentForm, setCommentForm] = useState({ author: '', password: '', content: '' });
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
+  const [deleteCommentPassword, setDeleteCommentPassword] = useState('');
+  const [deletingComment, setDeletingComment] = useState(false);
+
   useEffect(() => {
     fetchPost();
+    fetchComments();
   }, [postId]);
 
   const fetchPost = async () => {
@@ -38,6 +48,101 @@ export default function BoardDetailPage() {
       router.push('/board');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchComments = async () => {
+    try {
+      const response = await fetch(`/api/comments?postId=${postId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setComments(data.comments || []);
+      }
+    } catch (error) {
+      console.error('댓글 로드 실패:', error);
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!commentForm.author.trim()) {
+      alert('닉네임을 입력해주세요.');
+      return;
+    }
+    if (!commentForm.password) {
+      alert('비밀번호를 입력해주세요.');
+      return;
+    }
+    if (!commentForm.content.trim()) {
+      alert('댓글 내용을 입력해주세요.');
+      return;
+    }
+
+    setSubmittingComment(true);
+    try {
+      const response = await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postId,
+          ...commentForm,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setCommentForm({ author: '', password: '', content: '' });
+        fetchComments();
+        // 댓글 수 업데이트
+        if (post) {
+          setPost({ ...post, commentCount: post.commentCount + 1 });
+        }
+      } else {
+        alert(data.error || '댓글 작성에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('댓글 작성 오류:', error);
+      alert('댓글 작성 중 오류가 발생했습니다.');
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async () => {
+    if (!deleteCommentId || !deleteCommentPassword) {
+      alert('비밀번호를 입력해주세요.');
+      return;
+    }
+
+    setDeletingComment(true);
+    try {
+      const response = await fetch(
+        `/api/comments?id=${deleteCommentId}&password=${encodeURIComponent(deleteCommentPassword)}`,
+        { method: 'DELETE' }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        fetchComments();
+        setDeleteCommentId(null);
+        setDeleteCommentPassword('');
+        // 댓글 수 업데이트
+        if (post) {
+          setPost({ ...post, commentCount: Math.max(0, post.commentCount - 1) });
+        }
+      } else {
+        alert(data.error || '댓글 삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('댓글 삭제 오류:', error);
+      alert('댓글 삭제 중 오류가 발생했습니다.');
+    } finally {
+      setDeletingComment(false);
     }
   };
 
@@ -157,6 +262,91 @@ export default function BoardDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* 댓글 섹션 */}
+        <div className="mt-8">
+          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <MessageCircle className="w-5 h-5" />
+            댓글 {comments.length}개
+          </h2>
+
+          {/* 댓글 작성 폼 */}
+          <form onSubmit={handleSubmitComment} className="bg-gray-800 rounded-lg border border-gray-700 p-4 mb-6">
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <input
+                type="text"
+                placeholder="닉네임"
+                value={commentForm.author}
+                onChange={(e) => setCommentForm({ ...commentForm, author: e.target.value })}
+                className="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <input
+                type="password"
+                placeholder="비밀번호"
+                value={commentForm.password}
+                onChange={(e) => setCommentForm({ ...commentForm, password: e.target.value })}
+                className="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex gap-4">
+              <textarea
+                placeholder="댓글을 입력하세요..."
+                value={commentForm.content}
+                onChange={(e) => setCommentForm({ ...commentForm, content: e.target.value })}
+                className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none h-20"
+              />
+              <button
+                type="submit"
+                disabled={submittingComment}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 self-end"
+              >
+                {submittingComment ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+                등록
+              </button>
+            </div>
+          </form>
+
+          {/* 댓글 목록 */}
+          {commentsLoading ? (
+            <div className="text-center py-8">
+              <Loader2 className="w-6 h-6 text-blue-500 animate-spin mx-auto" />
+            </div>
+          ) : comments.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              아직 댓글이 없습니다. 첫 댓글을 남겨보세요!
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {comments.map((comment) => (
+                <div key={comment.id} className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-white">{comment.author}</span>
+                      {comment.isAdmin && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">
+                          <Shield className="w-3 h-3 mr-1" />
+                          관리자
+                        </span>
+                      )}
+                      <span className="text-sm text-gray-500">{getRelativeTime(comment.date)}</span>
+                    </div>
+                    <button
+                      onClick={() => setDeleteCommentId(comment.id)}
+                      className="text-gray-500 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-gray-300 whitespace-pre-wrap">{comment.content}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 삭제 확인 모달 */}
@@ -203,6 +393,58 @@ export default function BoardDetailPage() {
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center space-x-2"
               >
                 {deleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>삭제 중...</span>
+                  </>
+                ) : (
+                  <span>삭제</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 댓글 삭제 모달 */}
+      {deleteCommentId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full border border-gray-700">
+            <h3 className="text-xl font-bold text-white mb-4">댓글 삭제</h3>
+            <p className="text-gray-300 mb-4">
+              작성 시 입력한 비밀번호를 입력하세요.
+            </p>
+
+            <input
+              type="password"
+              placeholder="비밀번호"
+              value={deleteCommentPassword}
+              onChange={(e) => setDeleteCommentPassword(e.target.value)}
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent mb-4"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !deletingComment) {
+                  handleDeleteComment();
+                }
+              }}
+            />
+
+            <div className="flex items-center justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setDeleteCommentId(null);
+                  setDeleteCommentPassword('');
+                }}
+                disabled={deletingComment}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors disabled:opacity-50"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleDeleteComment}
+                disabled={deletingComment}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center space-x-2"
+              >
+                {deletingComment ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span>삭제 중...</span>
