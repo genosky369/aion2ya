@@ -195,7 +195,6 @@ export default function ShameBoard() {
             ) : filteredPosts.length === 0 ? (
               <Card className={`${THEME.card} border backdrop-blur-xl`}>
                 <CardContent className="py-20 text-center">
-                  <AlertCircle className="w-16 h-16 text-slate-600 mx-auto mb-4" />
                   <p className="text-slate-400 text-lg">검색 결과가 없습니다.</p>
                 </CardContent>
               </Card>
