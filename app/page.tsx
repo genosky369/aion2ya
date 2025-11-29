@@ -176,15 +176,15 @@ export default function HomePage() {
         href="https://www.instagram.com/uchihamalrang/#"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed left-2 top-1/2 -translate-y-1/2 z-50 hidden xl:block hover:scale-[1.02] transition-transform"
+        className="fixed left-[5%] top-1/2 -translate-y-1/2 z-50 hidden xl:block hover:scale-[1.02] transition-transform"
       >
         <Image
           src="/leftmalrang.jpg"
           alt="말랑이 인스타그램"
-          width={160}
+          width={200}
           height={600}
-          className="rounded-lg shadow-lg object-cover 2xl:w-[200px] 3xl:w-[300px]"
-          style={{ height: '600px' }}
+          className="rounded-lg shadow-lg object-cover"
+          style={{ width: '200px', height: '600px' }}
         />
       </a>
 
@@ -193,15 +193,15 @@ export default function HomePage() {
         href="https://www.instagram.com/uchihamalrang/#"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed right-2 top-1/2 -translate-y-1/2 z-50 hidden xl:block hover:scale-[1.02] transition-transform"
+        className="fixed right-[5%] top-1/2 -translate-y-1/2 z-50 hidden xl:block hover:scale-[1.02] transition-transform"
       >
         <Image
           src="/rightmalrang.jpg"
           alt="말랑이 인스타그램"
-          width={160}
+          width={200}
           height={600}
-          className="rounded-lg shadow-lg object-cover 2xl:w-[200px] 3xl:w-[300px]"
-          style={{ height: '600px' }}
+          className="rounded-lg shadow-lg object-cover"
+          style={{ width: '200px', height: '600px' }}
         />
       </a>
 
