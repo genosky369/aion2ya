@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -170,6 +171,37 @@ export default function HomePage() {
 
   return (
     <div className={`min-h-screen bg-gradient-to-br ${THEME.bg} text-white`}>
+      {/* 왼쪽 배너 */}
+      <a
+        href="https://www.instagram.com/uchihamalrang/#"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed left-4 top-1/2 -translate-y-1/2 z-50 hidden xl:block hover:scale-105 transition-transform"
+      >
+        <Image
+          src="/leftmalrang.jpg"
+          alt="말랑이 인스타그램"
+          width={120}
+          height={400}
+          className="rounded-lg shadow-lg"
+        />
+      </a>
+
+      {/* 오른쪽 배너 */}
+      <a
+        href="https://www.instagram.com/uchihamalrang/#"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed right-4 top-1/2 -translate-y-1/2 z-50 hidden xl:block hover:scale-105 transition-transform"
+      >
+        <Image
+          src="/rightmalrang.jpg"
+          alt="말랑이 인스타그램"
+          width={120}
+          height={400}
+          className="rounded-lg shadow-lg"
+        />
+      </a>
 
       <main className="container mx-auto px-6 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
