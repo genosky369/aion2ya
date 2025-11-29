@@ -57,54 +57,16 @@ const MOCK_UPDATES = [
   },
 ];
 
-// 임시 박제 데이터
-const MOCK_SHAME_POSTS = [
-  {
-    id: 1,
-    playerId: '포셔링',
-    server: '프레겔',
-    race: '천족',
-    reason: '던전 악질 플레이',
-    date: '2025.11.28',
-    reportCount: 3
-  },
-  {
-    id: 2,
-    playerId: '나쁜유저',
-    server: '이스라펠',
-    race: '마족',
-    reason: '거래 사기',
-    date: '2025.11.27',
-    reportCount: 5
-  },
-  {
-    id: 3,
-    playerId: '트롤러',
-    server: '프레겔',
-    race: '천족',
-    reason: '파티 트롤링',
-    date: '2025.11.26',
-    reportCount: 2
-  },
-  {
-    id: 4,
-    playerId: '욕쟁이',
-    server: '이스라펠',
-    race: '마족',
-    reason: '심한 욕설',
-    date: '2025.11.25',
-    reportCount: 4
-  },
-  {
-    id: 5,
-    playerId: '먹튀러',
-    server: '프레겔',
-    race: '천족',
-    reason: '파밍 먹튀',
-    date: '2025.11.24',
-    reportCount: 1
-  },
-];
+// 박제 데이터 타입 정의
+interface ShamePostDisplay {
+  id: number;
+  playerId: string;
+  server: string;
+  race: string;
+  reason: string;
+  date: string;
+  reportCount: number;
+}
 
 const SIMULATORS = [
   {
@@ -128,7 +90,8 @@ const SIMULATORS = [
 ];
 
 export default function HomePage() {
-  const [shamePosts, setShamePosts] = useState(MOCK_SHAME_POSTS);
+  const [shamePosts, setShamePosts] = useState<ShamePostDisplay[]>([]);
+  const [shameLoading, setShameLoading] = useState(true);
   const [updates, setUpdates] = useState<typeof MOCK_UPDATES>([]);
 
   useEffect(() => {
@@ -144,7 +107,7 @@ export default function HomePage() {
         .order('created_at', { ascending: false })
         .limit(5);
 
-      if (!shameError && shameData && shameData.length > 0) {
+      if (!shameError && shameData) {
         setShamePosts(shameData.map(post => ({
           id: post.id,
           playerId: post.player_id,
@@ -155,6 +118,7 @@ export default function HomePage() {
           reportCount: post.report_count
         })));
       }
+      setShameLoading(false);
 
       // 업데이트 데이터 가져오기
       const { data: updateData, error: updateError } = await supabase
@@ -173,7 +137,7 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error('Error fetching data:', error);
-      // 에러 발생 시 목 데이터 유지
+      setShameLoading(false);
     }
   }
 
@@ -290,28 +254,38 @@ export default function HomePage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {shamePosts.map((post) => (
-                    <Link key={post.id} href={`/board/shame/${post.id}`}>
-                      <div className={`p-4 rounded-xl ${THEME.cardHover} transition-all cursor-pointer group border border-transparent hover:border-red-700/50`}>
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <Badge className="bg-red-500/20 text-red-400 border-red-500/30 font-bold">
-                              {post.playerId}
+                {shameLoading ? (
+                  <div className="text-center py-8">
+                    <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-red-500"></div>
+                  </div>
+                ) : shamePosts.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500">
+                    아직 박제된 유저가 없습니다.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {shamePosts.map((post) => (
+                      <Link key={post.id} href={`/board/shame/${post.id}`}>
+                        <div className={`p-4 rounded-xl ${THEME.cardHover} transition-all cursor-pointer group border border-transparent hover:border-red-700/50`}>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <Badge className="bg-red-500/20 text-red-400 border-red-500/30 font-bold">
+                                {post.playerId}
+                              </Badge>
+                              <span className="text-xs text-slate-500">{post.server}</span>
+                              <span className="text-xs text-slate-500">{post.race}</span>
+                            </div>
+                            <Badge variant="outline" className="text-xs border-red-700 text-red-400">
+                              신고 {post.reportCount}회
                             </Badge>
-                            <span className="text-xs text-slate-500">{post.server}</span>
-                            <span className="text-xs text-slate-500">{post.race}</span>
                           </div>
-                          <Badge variant="outline" className="text-xs border-red-700 text-red-400">
-                            신고 {post.reportCount}회
-                          </Badge>
+                          <p className="text-sm text-slate-400 mb-2">{post.reason}</p>
+                          <span className="text-xs text-slate-600">{post.date}</span>
                         </div>
-                        <p className="text-sm text-slate-400 mb-2">{post.reason}</p>
-                        <span className="text-xs text-slate-600">{post.date}</span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
                 <Link href="/board/shame">
                   <Button className="w-full mt-4 bg-gradient-to-r from-red-600 to-orange-600 hover:opacity-90">
                     박제하러 가기
