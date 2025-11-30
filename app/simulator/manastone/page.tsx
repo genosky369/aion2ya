@@ -21,6 +21,7 @@ export default function ManaStoneCalculator() {
   // 상태
   const [selectedItem, setSelectedItem] = useState<string>('상급 심연의 마석');
   const [minGrade, setMinGrade] = useState<string>('기본');
+  const [slotCount, setSlotCount] = useState<number>(3); // 스탯 슬롯 개수 (장비 등급에 따라 1~5)
   const [requiredCount, setRequiredCount] = useState<number>(1);
   const [selectedStats, setSelectedStats] = useState<string[]>([]);
 
@@ -64,8 +65,17 @@ export default function ManaStoneCalculator() {
     setMinGrade(grade);
   }, []);
 
-  // 개수 변경 핸들러
-  const handleCountChange = useCallback((count: number) => {
+  // 슬롯 개수 변경 핸들러
+  const handleSlotCountChange = useCallback((count: number) => {
+    setSlotCount(count);
+    // 슬롯 개수가 줄어들면 필요 개수도 조정
+    if (requiredCount > count) {
+      setRequiredCount(count);
+    }
+  }, [requiredCount]);
+
+  // 필요 개수 변경 핸들러
+  const handleRequiredCountChange = useCallback((count: number) => {
     setRequiredCount(count);
   }, []);
 
@@ -102,8 +112,8 @@ export default function ManaStoneCalculator() {
       statProbabilities.push(statProb);
     });
 
-    // 3번 뽑기에서 requiredCount개 이상 성공할 확률
-    const n = 3;
+    // slotCount번 뽑기에서 requiredCount개 이상 성공할 확률
+    const n = slotCount;
     const k = requiredCount;
 
     // 선택한 스탯 중 하나라도 나올 확률
@@ -117,7 +127,7 @@ export default function ManaStoneCalculator() {
     }
 
     return successProb;
-  }, [itemData, selectedStats, minGrade, requiredCount]);
+  }, [itemData, selectedStats, minGrade, requiredCount, slotCount]);
 
   // 기댓값 계산
   const expectedAttempts = useMemo(() => {
@@ -196,42 +206,73 @@ export default function ManaStoneCalculator() {
               </CardContent>
             </Card>
 
-            {/* Step 3: 개수 설정 */}
+            {/* Step 3: 스탯 슬롯 개수 설정 */}
             <Card className={`${THEME.card} border backdrop-blur-xl`}>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-sm">3</span>
+                  스탯 슬롯 개수 설정
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2 flex-wrap">
+                  {[1, 2, 3, 4, 5].map(count => (
+                    <button
+                      key={count}
+                      type="button"
+                      onClick={() => handleSlotCountChange(count)}
+                      className={`py-2 px-4 rounded-md border transition-all ${
+                        slotCount === count
+                          ? 'bg-purple-600 border-purple-500 text-white'
+                          : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/50 hover:border-slate-600'
+                      }`}
+                    >
+                      {count}개
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  장비 등급에 따라 부여되는 스탯 슬롯 개수를 선택합니다.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Step 4: 필요 개수 설정 */}
+            <Card className={`${THEME.card} border backdrop-blur-xl`}>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-sm">4</span>
                   필요 개수 설정
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-2">
-                  {[1, 2, 3].map(count => (
+                <div className="flex gap-2 flex-wrap">
+                  {Array.from({ length: slotCount }, (_, i) => i + 1).map(count => (
                     <button
                       key={count}
                       type="button"
-                      onClick={() => handleCountChange(count)}
+                      onClick={() => handleRequiredCountChange(count)}
                       className={`py-2 px-4 rounded-md border transition-all ${
                         requiredCount === count
                           ? 'bg-purple-600 border-purple-500 text-white'
                           : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700/50 hover:border-slate-600'
                       }`}
                     >
-                      {count}개 이상
+                      {count === slotCount ? `${count}개` : `${count}개 이상`}
                     </button>
                   ))}
                 </div>
                 <p className="text-xs text-slate-500 mt-2">
-                  3개 중 몇 개의 원하는 옵션이 필요한지 선택합니다.
+                  {slotCount}개 슬롯 중 몇 개의 원하는 옵션이 필요한지 선택합니다.
                 </p>
               </CardContent>
             </Card>
 
-            {/* Step 4: 옵션 선택 */}
+            {/* Step 5: 옵션 선택 */}
             <Card className={`${THEME.card} border backdrop-blur-xl`}>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-sm">4</span>
+                  <span className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-sm">5</span>
                   원하는 옵션 선택
                   <Badge variant="outline" className="ml-2">{selectedStats.length}개 선택</Badge>
                 </CardTitle>
@@ -288,7 +329,7 @@ export default function ManaStoneCalculator() {
                 {selectedStats.length > 0 && (
                   <div className="text-xs text-slate-500">
                     <Info className="w-4 h-4 inline mr-1" />
-                    선택한 {selectedStats.length}개 옵션 중 {requiredCount}개 이상이 {minGrade} 등급 이상으로 나올 확률
+                    {slotCount}개 슬롯에서 선택한 옵션이 {requiredCount}개{requiredCount < slotCount ? ' 이상' : ''} {minGrade} 등급 이상으로 나올 확률
                   </div>
                 )}
               </CardContent>
