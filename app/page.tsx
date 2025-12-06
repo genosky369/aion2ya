@@ -311,7 +311,7 @@ export default function HomePage() {
                             {post.isAdmin && (
                               <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">
                                 <Shield className="w-3 h-3 mr-1" />
-                                관리자
+                                대신 해주는 기계
                               </Badge>
                             )}
                             <h3 className="text-sm font-medium group-hover:text-blue-400 transition-colors truncate flex-1">
