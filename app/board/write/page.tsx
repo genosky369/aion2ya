@@ -21,7 +21,7 @@ export default function BoardWritePage() {
     const token = localStorage.getItem('admin_token');
     if (token) {
       setIsAdmin(true);
-      setFormData(prev => ({ ...prev, author: '관리자' }));
+      setFormData(prev => ({ ...prev, author: '대신 해주는 기계' }));
     }
   }, []);
 

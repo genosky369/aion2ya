@@ -329,7 +329,7 @@ export default function BoardDetailPage() {
                       {comment.isAdmin && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">
                           <Shield className="w-3 h-3 mr-1" />
-                          관리자
+                          대신 해주는 기계
                         </span>
                       )}
                       <span className="text-sm text-gray-500">{getRelativeTime(comment.date)}</span>
