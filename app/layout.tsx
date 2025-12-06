@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import ThemeProvider from '@/components/ThemeProvider';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import VisitorTracker from '@/components/VisitorTracker';
 
 export const metadata: Metadata = {
   title: '아이온2야 - 아이온2 커뮤니티 & 정보 사이트',
@@ -29,6 +30,7 @@ export default function RootLayout({
       <body className="antialiased min-h-screen flex flex-col">
         <Suspense fallback={<div className="min-h-screen bg-background" />}>
           <ThemeProvider>
+            <VisitorTracker />
             <Header />
             <main className="flex-1">
               {children}

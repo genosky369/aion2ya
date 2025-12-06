@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Plus, LogOut, BarChart3, AlertCircle } from 'lucide-react';
+import { FileText, Plus, LogOut, AlertCircle, Users, TrendingUp, TrendingDown } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 const THEME = {
@@ -21,6 +21,12 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
     totalUpdates: 0,
     totalShamePosts: 0,
+  });
+  const [visitorStats, setVisitorStats] = useState({
+    today: 0,
+    yesterday: 0,
+    total: 0,
+    loading: true,
   });
 
   useEffect(() => {
@@ -41,6 +47,7 @@ export default function AdminDashboardPage() {
 
     // 통계 데이터 가져오기
     fetchStats();
+    fetchVisitorStats();
   }, [router]);
 
   async function fetchStats() {
@@ -63,6 +70,26 @@ export default function AdminDashboardPage() {
       }
     } catch (error) {
       console.error('Error fetching stats:', error);
+    }
+  }
+
+  async function fetchVisitorStats() {
+    try {
+      const response = await fetch('/api/visitors');
+      if (response.ok) {
+        const data = await response.json();
+        setVisitorStats({
+          today: data.today || 0,
+          yesterday: data.yesterday || 0,
+          total: data.total || 0,
+          loading: false,
+        });
+      } else {
+        setVisitorStats(prev => ({ ...prev, loading: false }));
+      }
+    } catch (error) {
+      console.error('Error fetching visitor stats:', error);
+      setVisitorStats(prev => ({ ...prev, loading: false }));
     }
   }
 
@@ -124,11 +151,29 @@ export default function AdminDashboardPage() {
 
           <Card className={`${THEME.card} border backdrop-blur-xl`}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-slate-400">오늘 방문자</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-slate-400">오늘 방문자</CardTitle>
+                <Users className="w-4 h-4 text-slate-500" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">-</div>
-              <p className="text-xs text-slate-500 mt-1">추후 구현 예정</p>
+              {visitorStats.loading ? (
+                <div className="text-3xl font-bold text-slate-500">...</div>
+              ) : (
+                <>
+                  <div className="text-3xl font-bold">{visitorStats.today.toLocaleString()}</div>
+                  <div className="flex items-center gap-1 mt-1">
+                    {visitorStats.today >= visitorStats.yesterday ? (
+                      <TrendingUp className="w-3 h-3 text-green-500" />
+                    ) : (
+                      <TrendingDown className="w-3 h-3 text-red-500" />
+                    )}
+                    <p className="text-xs text-slate-500">
+                      어제: {visitorStats.yesterday.toLocaleString()}명
+                    </p>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
