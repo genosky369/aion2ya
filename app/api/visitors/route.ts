@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 }
 
 // GET: 오늘 방문자 통계 (관리자용)
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const today = getTodayKST();
 
