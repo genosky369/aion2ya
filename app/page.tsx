@@ -25,19 +25,6 @@ export default function ComingSoonPage() {
             </div>
           </div>
 
-          {/* 타이틀 */}
-          <h1 className="text-6xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-violet-400 to-pink-400 bg-clip-text text-transparent animate-gradient">
-            Coming Soon
-          </h1>
-
-          {/* 설명 */}
-          <p className="text-xl md:text-2xl text-slate-300 mb-4 leading-relaxed">
-            새로운 프로젝트를 준비 중입니다
-          </p>
-          <p className="text-lg text-slate-400 mb-12">
-            곧 만나요!
-          </p>
-
           {/* 개발일지 바로가기 */}
           <Link
             href="/devlog"
