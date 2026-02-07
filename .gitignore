@@ -9,7 +9,12 @@ Desktop.ini
 # Dependencies
 node_modules/
 
+# Next.js (main 브랜치 잔여물)
+.next/
+next-env.d.ts
+
 # Temp / Cache
 *.tmp
 *.bak
 ~$*
+nul
