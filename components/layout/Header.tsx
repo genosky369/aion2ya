@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { navigation } from '@/config/navigation'
@@ -8,6 +9,12 @@ import { Button } from '@/components/ui/button'
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const pathname = usePathname()
+
+  // 메인 페이지에서는 헤더 숨김
+  if (pathname === '/') {
+    return null
+  }
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
