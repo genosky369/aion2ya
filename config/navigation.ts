@@ -26,6 +26,11 @@ export const navigation: NavItem[] = [
     href: '/board',
     icon: 'MessageSquare',
   },
+  {
+    label: '개발일지',
+    href: '/devlog',
+    icon: 'BookOpen',
+  },
 ]
 
 // 푸터 네비게이션

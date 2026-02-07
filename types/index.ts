@@ -63,3 +63,25 @@ export interface ApiResponse<T> {
   data?: T;
   error?: string;
 }
+
+// 개발일지 타입
+export interface Devlog {
+  id: number;
+  date: string;
+  title: string;
+  summary: string;
+  content: string;
+  tags: string[];
+  view_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DevlogWorkItem {
+  id: number;
+  devlog_id: number;
+  category: string;
+  title: string;
+  description: string;
+  order_index: number;
+}
