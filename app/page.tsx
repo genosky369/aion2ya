@@ -38,22 +38,14 @@ export default function ComingSoonPage() {
             곧 만나요!
           </p>
 
-          {/* CTA 버튼 (선택사항 - 필요시 활성화) */}
-          {/* <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link
-              href="/about"
-              className="group inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl font-semibold hover:shadow-xl hover:shadow-blue-500/50 transition-all duration-300 hover:scale-105"
-            >
-              더 알아보기
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <a
-              href="mailto:contact@aion2ya.com"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-slate-800 rounded-xl font-semibold border border-slate-700 hover:border-slate-600 transition-all duration-300 hover:bg-slate-700"
-            >
-              문의하기
-            </a>
-          </div> */}
+          {/* 개발일지 바로가기 */}
+          <Link
+            href="/devlog"
+            className="group inline-flex items-center gap-3 px-8 py-4 bg-slate-800/60 backdrop-blur-sm rounded-xl font-semibold border border-slate-700 hover:border-blue-500/50 hover:bg-slate-800/80 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10"
+          >
+            <span className="text-slate-300 group-hover:text-white transition-colors">개발일지 보기</span>
+            <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
+          </Link>
 
           {/* 소셜 링크 (선택사항 - 필요시 활성화) */}
           {/* <div className="mt-16 flex gap-6 justify-center">
