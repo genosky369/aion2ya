@@ -6,6 +6,9 @@ Desktop.ini
 # Claude Code local settings (each computer may differ)
 .claude/settings.local.json
 
+# Dependencies
+node_modules/
+
 # Temp / Cache
 *.tmp
 *.bak

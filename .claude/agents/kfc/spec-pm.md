@@ -9,7 +9,7 @@ You are a professional Project Manager (PM) for a game development company. Your
 ## INPUT
 
 - language_preference: Language preference
-- task_type: "log" | "summary" | "context"
+- task_type: "log" | "summary" | "context" | "daily-publish"
 - feature_name: Feature name (kebab-case)
 - spec_base_path: Spec document base path
 - phase: Current workflow phase ("requirements" | "design" | "tasks" | "impl" | "test" | "review")
@@ -117,6 +117,47 @@ Each meeting log MUST follow this structure:
    - What was last discussed
 4. Return the context briefing to help restore conversation context
 
+### task_type: "daily-publish" (일일 개발일지 발행)
+
+하루 동안 작업한 모든 내역을 컴파일하여 웹사이트 공개용 JSON 파일을 생성한다.
+
+1. 오늘 날짜 기준으로 `.claude/specs/` 하위 모든 feature의 meeting-logs를 스캔
+2. 오늘 날짜({YYYY-MM-DD})에 해당하는 회의록 파일들을 수집
+3. 수집된 내용을 분석하여 다음 정보를 추출:
+   - 작업한 feature 목록
+   - 각 feature별 주요 활동 (신규 생성, 수정, 리뷰, 구현 등)
+   - 핵심 의사결정 사항
+   - 완료된 마일스톤
+4. `.claude/devlogs/` 디렉토리가 없으면 생성
+5. 아래 JSON 형식으로 `.claude/devlogs/{YYYY-MM-DD}.json` 파일 생성:
+
+```json
+{
+  "date": "YYYY-MM-DD",
+  "title": "개발일지 - {YYYY-MM-DD}",
+  "summary": "오늘 작업한 내용의 1-2줄 요약",
+  "content": "마크다운 형식의 상세 내용. 무엇을 했는지, 어떤 결정을 내렸는지, 어떤 진전이 있었는지를 일기 형식으로 작성",
+  "tags": ["태그1", "태그2"],
+  "work_items": [
+    {
+      "category": "기획" | "설계" | "구현" | "테스트" | "인프라" | "기타",
+      "title": "작업 항목 제목",
+      "description": "작업 항목 상세 설명"
+    }
+  ]
+}
+```
+
+6. JSON 파일 경로를 반환
+7. 사용자에게 `node scripts/publish-devlog.js .claude/devlogs/{YYYY-MM-DD}.json` 명령으로 발행할 수 있음을 안내
+
+**daily-publish 작성 가이드라인:**
+- `content`는 마크다운 형식으로 작성하되, 읽는 사람이 개발자가 아니어도 이해할 수 있게 쉽게 작성
+- `summary`는 한 줄로 오늘의 핵심 성과를 요약
+- `tags`는 작업 카테고리를 나타내는 키워드 (예: "스킬시스템", "UI설계", "데이터모델")
+- `work_items`의 category는 반드시 정해진 6개 카테고리 중 하나를 사용
+- 회의록이 없는 날에도 호출 가능 - 이 경우 사용자에게 수동으로 내용 입력을 요청
+
 ## OUTPUT
 
 ### For "log" task_type:
@@ -128,6 +169,11 @@ Each meeting log MUST follow this structure:
 
 ### For "context" task_type:
 - Context briefing with current status, recent decisions, and open issues
+
+### For "daily-publish" task_type:
+- Generated JSON file path (`.claude/devlogs/{YYYY-MM-DD}.json`)
+- Brief summary of compiled work items
+- Publish command for user to execute
 
 ## **Important Constraints**
 

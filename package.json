@@ -1,0 +1,12 @@
+{
+  "name": "magickinight",
+  "version": "1.0.0",
+  "private": true,
+  "description": "방치형 키우기 게임 기획 프로젝트",
+  "scripts": {
+    "publish-devlog": "node scripts/publish-devlog.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.0"
+  }
+}
