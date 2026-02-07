@@ -1,0 +1,12 @@
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Claude Code local settings (each computer may differ)
+.claude/settings.local.json
+
+# Temp / Cache
+*.tmp
+*.bak
+~$*
