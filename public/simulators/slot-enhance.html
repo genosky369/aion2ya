@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>마법기사 키우기 - 슬롯 강화 시뮬레이터</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            grade: {
+              normal: '#9ca3af',
+              rare: '#60a5fa',
+              epic: '#a78bfa',
+              legendary: '#fbbf24',
+              ancient: '#ef4444',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+    @keyframes glow { 0%,100%{box-shadow:0 0 5px rgba(99,102,241,0.5)} 50%{box-shadow:0 0 20px rgba(99,102,241,0.8)} }
+    @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.15)} 100%{transform:scale(1)} }
+    @keyframes slideIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes milestoneUnlock { 0%{transform:scale(0.8);opacity:0} 50%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
+    .shake { animation: shake 0.3s ease-in-out; }
+    .glow { animation: glow 0.6s ease-in-out; }
+    .pop { animation: pop 0.3s ease-out; }
+    .slide-in { animation: slideIn 0.3s ease-out; }
+    .milestone-unlock { animation: milestoneUnlock 0.5s ease-out; }
+    .star { color: #fbbf24; text-shadow: 0 0 6px rgba(251,191,36,0.6); }
+
+    /* Equipment Grid */
+    .equip-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 80px);
+      grid-template-rows: repeat(5, 80px);
+      gap: 6px;
+      justify-content: center;
+      grid-template-areas:
+        ".     hat   ."
+        "ear   .     neck"
+        "wep   robe  cloak"
+        "glove bot   ring"
+        ".     shoe  .";
+    }
+    .equip-cell {
+      border: 2px solid #475569;
+      border-radius: 10px;
+      background: rgba(30, 41, 59, 0.9);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+      position: relative;
+    }
+    .equip-cell:hover { border-color: rgba(99,102,241,0.6); background: rgba(51,65,85,0.9); }
+    .equip-cell.selected { border-color: #6366f1; box-shadow: 0 0 14px rgba(99,102,241,0.4); background: rgba(67,56,202,0.15); }
+    .equip-cell.max-level { border-color: rgba(251,191,36,0.5); }
+    .equip-cell.max-level.selected { border-color: #fbbf24; box-shadow: 0 0 14px rgba(251,191,36,0.4); }
+
+    /* Milestone tab */
+    .ms-tab {
+      padding: 5px 8px;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+      border-bottom: none;
+      font-size: 11px;
+      font-weight: 600;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .ms-tab.active { background: #1e293b; border-color: #475569; color: #e2e8f0; }
+    .ms-tab.locked { opacity: 0.4; cursor: not-allowed; }
+    .ms-tab:not(.active):not(.locked):hover { background: rgba(51,65,85,0.5); }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #1e293b; }
+    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+    body { font-family: 'Segoe UI', sans-serif; }
+
+    .grade-normal { color: #9ca3af; }
+    .grade-rare { color: #60a5fa; }
+    .grade-epic { color: #a78bfa; }
+    .grade-legendary { color: #fbbf24; }
+    .grade-ancient { color: #ef4444; }
+    .grade-bg-normal { background: rgba(156,163,175,0.15); border-color: #9ca3af; }
+    .grade-bg-rare { background: rgba(96,165,250,0.15); border-color: #60a5fa; }
+    .grade-bg-epic { background: rgba(167,139,250,0.15); border-color: #a78bfa; }
+    .grade-bg-legendary { background: rgba(251,191,36,0.15); border-color: #fbbf24; }
+    .grade-bg-ancient { background: rgba(239,68,68,0.15); border-color: #ef4444; }
+
+    /* MS dot indicators on equip cells */
+    .ms-dots { display: flex; gap: 2px; margin-top: 2px; }
+    .ms-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .ms-dot.open { background: #22c55e; }
+    .ms-dot.locked { background: #475569; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-200 min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-slate-800 border-b border-slate-700 px-6 py-3 flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-white">마법기사 키우기 - 슬롯 강화 시뮬레이터</h1>
+      <p class="text-xs text-slate-400">기획서 v0.4 기반 | 마일스톤 슬롯 시스템</p>
+    </div>
+    <div class="flex gap-3 items-center">
+      <div class="text-right">
+        <div class="flex items-center gap-2">
+          <span class="text-yellow-400 text-sm">💎 강화석</span>
+          <span id="stoneCount" class="font-bold text-white">99999</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-yellow-300 text-sm">🪙 골드</span>
+          <span id="goldCount" class="font-bold text-white">9999999</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-emerald-400 text-sm">🛡️ 보호석</span>
+          <span id="protectCount" class="font-bold text-white">999</span>
+        </div>
+      </div>
+      <button onclick="resetAll()" class="px-3 py-1 bg-red-900/50 hover:bg-red-900 text-red-300 rounded text-sm border border-red-800">초기화</button>
+      <button onclick="toggleInfinite()" id="infiniteBtn" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded text-sm border border-slate-600">무한 재화 OFF</button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="flex h-[calc(100vh-56px)]">
+
+    <!-- Left: Character Equipment -->
+    <div class="w-[320px] border-r border-slate-700 p-4 overflow-y-auto flex-shrink-0">
+      <h2 class="text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wider">장비 슬롯</h2>
+
+      <!-- Character Equipment Grid -->
+      <div class="relative mx-auto" style="width:252px; height:424px;">
+        <!-- Wizard Silhouette -->
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none" style="padding-top:40px;">
+          <svg viewBox="0 0 100 160" class="text-slate-500" style="width:150px; height:240px; opacity:0.07;">
+            <polygon points="50,5 33,45 67,45" fill="currentColor"/>
+            <ellipse cx="50" cy="47" rx="22" ry="5" fill="currentColor"/>
+            <circle cx="50" cy="59" r="11" fill="currentColor"/>
+            <path d="M38,69 L26,142 L74,142 L62,69 Z" fill="currentColor"/>
+            <ellipse cx="50" cy="71" rx="16" ry="4" fill="currentColor"/>
+            <rect x="14" y="22" width="3" height="124" rx="1.5" fill="currentColor"/>
+            <circle cx="15.5" cy="19" r="5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+        </div>
+
+        <!-- Equipment Grid -->
+        <div id="equipGrid" class="equip-grid relative z-10"></div>
+      </div>
+
+      <!-- Total Milestone -->
+      <div class="mt-4 border-t border-slate-700 pt-3">
+        <h2 class="text-sm font-semibold text-slate-400 mb-2 uppercase tracking-wider">전체 합산 마일스톤</h2>
+        <div class="text-lg font-bold text-white mb-2">합산 Lv. <span id="totalLevel">0</span> / 300</div>
+        <div class="w-full bg-slate-700 rounded-full h-2 mb-3">
+          <div id="totalBar" class="bg-indigo-500 h-2 rounded-full transition-all duration-300" style="width:0%"></div>
+        </div>
+        <div id="totalMilestones" class="space-y-1 text-xs"></div>
+      </div>
+    </div>
+
+    <!-- Center: Enhancement Panel -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <div class="flex-1 p-6 overflow-y-auto">
+        <div id="enhancePanel" class="max-w-lg mx-auto">
+          <div class="text-center text-slate-500 py-20">
+            <p class="text-4xl mb-3">⚔️</p>
+            <p class="text-lg">장비 슬롯을 선택하세요</p>
+            <p class="text-sm mt-1">왼쪽 장비 아이콘을 클릭</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Enhancement Log -->
+      <div class="border-t border-slate-700 h-44 flex-shrink-0">
+        <div class="px-4 py-2 flex items-center justify-between bg-slate-800/50">
+          <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">강화 로그</h3>
+          <button onclick="clearLog()" class="text-xs text-slate-500 hover:text-slate-300">지우기</button>
+        </div>
+        <div id="logArea" class="px-4 py-2 overflow-y-auto h-[calc(100%-36px)] text-xs font-mono space-y-0.5"></div>
+      </div>
+    </div>
+
+    <!-- Right: Stats & Summary -->
+    <div class="w-[280px] border-l border-slate-700 p-4 overflow-y-auto flex-shrink-0">
+      <h2 class="text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wider">통계</h2>
+      <div id="statsPanel" class="space-y-2 text-sm mb-6"></div>
+
+      <h2 class="text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wider">마일스톤 스텟 합산</h2>
+      <div id="milestoneStatsPanel" class="space-y-1 text-sm"></div>
+    </div>
+
+  </div>
+
+  <script>
+  // ============================================================
+  // TABLE DATA
+  // ============================================================
+  const T_EQUIP_SLOT = [
+    { slotId: 'SLOT_WEAPON', slotName: '지팡이', slotOrder: 1, maxEnhanceLevel: 30 },
+    { slotId: 'SLOT_HAT', slotName: '모자', slotOrder: 2, maxEnhanceLevel: 30 },
+    { slotId: 'SLOT_ROBE', slotName: '로브(상의)', slotOrder: 3, maxEnhanceLevel: 30 },
+    { slotId: 'SLOT_BOTTOM', slotName: '하의', slotOrder: 4, maxEnhanceLevel: 30 },
+    { slotId: 'SLOT_GLOVE', slotName: '장갑', slotOrder: 5, maxEnhanceLevel: 30 },
+    { slotId: 'SLOT_SHOE', slotName: '신발', slotOrder: 6, maxEnhanceLevel: 30 },
+    { slotId: 'SLOT_CLOAK', slotName: '망토', slotOrder: 7, maxEnhanceLevel: 30 },
+    { slotId: 'SLOT_RING', slotName: '반지', slotOrder: 8, maxEnhanceLevel: 30 },
+    { slotId: 'SLOT_NECKLACE', slotName: '목걸이', slotOrder: 9, maxEnhanceLevel: 30 },
+    { slotId: 'SLOT_EARRING', slotName: '귀걸이', slotOrder: 10, maxEnhanceLevel: 30 },
+  ];
+
+  const T_SLOT_ENHANCE = [
+    { slotId:'ALL', level:0, statRate:0.00, successRate:1.00, failBonusRate:0.05, failType:'KEEP', isSafe:true, costType1:'ENHANCE_STONE', costAmount1:5, costType2:'GOLD', costAmount2:500 },
+    { slotId:'ALL', level:1, statRate:0.03, successRate:0.90, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:8, costType2:'GOLD', costAmount2:800 },
+    { slotId:'ALL', level:2, statRate:0.06, successRate:0.90, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:12, costType2:'GOLD', costAmount2:1200 },
+    { slotId:'ALL', level:3, statRate:0.09, successRate:0.90, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:16, costType2:'GOLD', costAmount2:1600 },
+    { slotId:'ALL', level:4, statRate:0.12, successRate:0.90, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:20, costType2:'GOLD', costAmount2:2000 },
+    { slotId:'ALL', level:5, statRate:0.17, successRate:1.00, failBonusRate:0.05, failType:'KEEP', isSafe:true, costType1:'ENHANCE_STONE', costAmount1:30, costType2:'GOLD', costAmount2:3000 },
+    { slotId:'ALL', level:6, statRate:0.21, successRate:0.70, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:35, costType2:'GOLD', costAmount2:3500 },
+    { slotId:'ALL', level:7, statRate:0.25, successRate:0.70, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:40, costType2:'GOLD', costAmount2:4000 },
+    { slotId:'ALL', level:8, statRate:0.29, successRate:0.70, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:50, costType2:'GOLD', costAmount2:5000 },
+    { slotId:'ALL', level:9, statRate:0.33, successRate:0.70, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:60, costType2:'GOLD', costAmount2:6000 },
+    { slotId:'ALL', level:10, statRate:0.40, successRate:1.00, failBonusRate:0.05, failType:'KEEP', isSafe:true, costType1:'ENHANCE_STONE', costAmount1:80, costType2:'GOLD', costAmount2:8000 },
+    { slotId:'ALL', level:11, statRate:0.45, successRate:0.50, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:90, costType2:'GOLD', costAmount2:9000 },
+    { slotId:'ALL', level:12, statRate:0.50, successRate:0.50, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:100, costType2:'GOLD', costAmount2:10000 },
+    { slotId:'ALL', level:13, statRate:0.55, successRate:0.50, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:120, costType2:'GOLD', costAmount2:12000 },
+    { slotId:'ALL', level:14, statRate:0.60, successRate:0.50, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:150, costType2:'GOLD', costAmount2:15000 },
+    { slotId:'ALL', level:15, statRate:0.70, successRate:1.00, failBonusRate:0.05, failType:'KEEP', isSafe:true, costType1:'ENHANCE_STONE', costAmount1:200, costType2:'GOLD', costAmount2:20000 },
+    { slotId:'ALL', level:16, statRate:0.76, successRate:0.35, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:220, costType2:'GOLD', costAmount2:22000 },
+    { slotId:'ALL', level:17, statRate:0.82, successRate:0.35, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:250, costType2:'GOLD', costAmount2:25000 },
+    { slotId:'ALL', level:18, statRate:0.88, successRate:0.35, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:280, costType2:'GOLD', costAmount2:28000 },
+    { slotId:'ALL', level:19, statRate:0.94, successRate:0.35, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:350, costType2:'GOLD', costAmount2:35000 },
+    { slotId:'ALL', level:20, statRate:1.10, successRate:1.00, failBonusRate:0.05, failType:'KEEP', isSafe:true, costType1:'ENHANCE_STONE', costAmount1:450, costType2:'GOLD', costAmount2:45000 },
+    { slotId:'ALL', level:21, statRate:1.18, successRate:0.20, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:500, costType2:'GOLD', costAmount2:50000 },
+    { slotId:'ALL', level:22, statRate:1.26, successRate:0.20, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:550, costType2:'GOLD', costAmount2:55000 },
+    { slotId:'ALL', level:23, statRate:1.34, successRate:0.20, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:600, costType2:'GOLD', costAmount2:60000 },
+    { slotId:'ALL', level:24, statRate:1.42, successRate:0.20, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:700, costType2:'GOLD', costAmount2:70000 },
+    { slotId:'ALL', level:25, statRate:1.60, successRate:1.00, failBonusRate:0.05, failType:'KEEP', isSafe:true, costType1:'ENHANCE_STONE', costAmount1:900, costType2:'GOLD', costAmount2:90000 },
+    { slotId:'ALL', level:26, statRate:1.70, successRate:0.10, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:1000, costType2:'GOLD', costAmount2:100000 },
+    { slotId:'ALL', level:27, statRate:1.80, successRate:0.10, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:1100, costType2:'GOLD', costAmount2:110000 },
+    { slotId:'ALL', level:28, statRate:1.90, successRate:0.10, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:1200, costType2:'GOLD', costAmount2:120000 },
+    { slotId:'ALL', level:29, statRate:2.00, successRate:0.10, failBonusRate:0.05, failType:'KEEP', isSafe:false, costType1:'ENHANCE_STONE', costAmount1:1300, costType2:'GOLD', costAmount2:130000 },
+    { slotId:'ALL', level:30, statRate:2.25, successRate:1.00, failBonusRate:0.00, failType:'KEEP', isSafe:true, costType1:'ENHANCE_STONE', costAmount1:1500, costType2:'GOLD', costAmount2:150000 },
+  ];
+
+  const T_SLOT_MILESTONE = [
+    { slotId:'ALL', level:5, starDisplay:1, effectId:'EFF_SLOT_STAR1' },
+    { slotId:'ALL', level:10, starDisplay:2, effectId:'EFF_SLOT_STAR2' },
+    { slotId:'ALL', level:15, starDisplay:3, effectId:'EFF_SLOT_STAR3' },
+    { slotId:'ALL', level:20, starDisplay:4, effectId:'EFF_SLOT_STAR4' },
+    { slotId:'ALL', level:25, starDisplay:5, effectId:'EFF_SLOT_STAR5' },
+    { slotId:'ALL', level:30, starDisplay:6, effectId:'EFF_SLOT_MAX' },
+  ];
+
+  const T_SLOT_TOTAL_MILESTONE = [
+    { totalLevel:30, bonusStatType:'ATK_RATE', bonusStatValue:0.02, bonusDesc:'전체 ATK +2%', titleReward:'' },
+    { totalLevel:60, bonusStatType:'HP_RATE', bonusStatValue:0.03, bonusDesc:'전체 HP +3%', titleReward:'' },
+    { totalLevel:100, bonusStatType:'ATK_RATE', bonusStatValue:0.05, bonusDesc:'전체 ATK +5%', titleReward:'' },
+    { totalLevel:150, bonusStatType:'FINAL_DMG_RATE', bonusStatValue:0.03, bonusDesc:'전체 최종뎀 +3%', titleReward:'' },
+    { totalLevel:200, bonusStatType:'ATK_RATE', bonusStatValue:0.10, bonusDesc:'전체 ATK +10%', titleReward:'' },
+    { totalLevel:250, bonusStatType:'FINAL_DMG_RATE', bonusStatValue:0.08, bonusDesc:'전체 최종뎀 +8%', titleReward:'' },
+    { totalLevel:300, bonusStatType:'FINAL_DMG_RATE', bonusStatValue:0.15, bonusDesc:'전체 최종뎀 +15%', titleReward:'장비 마스터' },
+  ];
+
+  const T_MILESTONE_STAT_POOL = [
+    {milestoneLevel:5,statType:'CRIT_RATE',grade:'NORMAL',statValue:0.005,weight:50},
+    {milestoneLevel:5,statType:'CRIT_RATE',grade:'RARE',statValue:0.008,weight:50},
+    {milestoneLevel:5,statType:'CRIT_RATE',grade:'EPIC',statValue:0.012,weight:50},
+    {milestoneLevel:5,statType:'CRIT_RATE',grade:'LEGENDARY',statValue:0.018,weight:50},
+    {milestoneLevel:5,statType:'CRIT_RATE',grade:'ANCIENT',statValue:0.025,weight:50},
+    {milestoneLevel:5,statType:'ATK_RATE',grade:'NORMAL',statValue:0.01,weight:50},
+    {milestoneLevel:5,statType:'ATK_RATE',grade:'RARE',statValue:0.015,weight:50},
+    {milestoneLevel:5,statType:'ATK_RATE',grade:'EPIC',statValue:0.025,weight:50},
+    {milestoneLevel:5,statType:'ATK_RATE',grade:'LEGENDARY',statValue:0.04,weight:50},
+    {milestoneLevel:5,statType:'ATK_RATE',grade:'ANCIENT',statValue:0.06,weight:50},
+    {milestoneLevel:10,statType:'CRIT_RATE',grade:'NORMAL',statValue:0.008,weight:40},
+    {milestoneLevel:10,statType:'CRIT_RATE',grade:'RARE',statValue:0.012,weight:40},
+    {milestoneLevel:10,statType:'CRIT_RATE',grade:'EPIC',statValue:0.02,weight:40},
+    {milestoneLevel:10,statType:'CRIT_RATE',grade:'LEGENDARY',statValue:0.03,weight:40},
+    {milestoneLevel:10,statType:'CRIT_RATE',grade:'ANCIENT',statValue:0.045,weight:40},
+    {milestoneLevel:10,statType:'CRIT_DMG',grade:'NORMAL',statValue:0.02,weight:30},
+    {milestoneLevel:10,statType:'CRIT_DMG',grade:'RARE',statValue:0.035,weight:30},
+    {milestoneLevel:10,statType:'CRIT_DMG',grade:'EPIC',statValue:0.05,weight:30},
+    {milestoneLevel:10,statType:'CRIT_DMG',grade:'LEGENDARY',statValue:0.08,weight:30},
+    {milestoneLevel:10,statType:'CRIT_DMG',grade:'ANCIENT',statValue:0.12,weight:30},
+    {milestoneLevel:10,statType:'ATK_RATE',grade:'NORMAL',statValue:0.015,weight:30},
+    {milestoneLevel:10,statType:'ATK_RATE',grade:'RARE',statValue:0.025,weight:30},
+    {milestoneLevel:10,statType:'ATK_RATE',grade:'EPIC',statValue:0.04,weight:30},
+    {milestoneLevel:10,statType:'ATK_RATE',grade:'LEGENDARY',statValue:0.06,weight:30},
+    {milestoneLevel:10,statType:'ATK_RATE',grade:'ANCIENT',statValue:0.10,weight:30},
+    {milestoneLevel:15,statType:'CRIT_RATE',grade:'NORMAL',statValue:0.01,weight:30},
+    {milestoneLevel:15,statType:'CRIT_RATE',grade:'RARE',statValue:0.016,weight:30},
+    {milestoneLevel:15,statType:'CRIT_RATE',grade:'EPIC',statValue:0.025,weight:30},
+    {milestoneLevel:15,statType:'CRIT_RATE',grade:'LEGENDARY',statValue:0.038,weight:30},
+    {milestoneLevel:15,statType:'CRIT_RATE',grade:'ANCIENT',statValue:0.055,weight:30},
+    {milestoneLevel:15,statType:'CRIT_DMG',grade:'NORMAL',statValue:0.03,weight:25},
+    {milestoneLevel:15,statType:'CRIT_DMG',grade:'RARE',statValue:0.05,weight:25},
+    {milestoneLevel:15,statType:'CRIT_DMG',grade:'EPIC',statValue:0.075,weight:25},
+    {milestoneLevel:15,statType:'CRIT_DMG',grade:'LEGENDARY',statValue:0.12,weight:25},
+    {milestoneLevel:15,statType:'CRIT_DMG',grade:'ANCIENT',statValue:0.18,weight:25},
+    {milestoneLevel:15,statType:'ATK_RATE',grade:'NORMAL',statValue:0.02,weight:25},
+    {milestoneLevel:15,statType:'ATK_RATE',grade:'RARE',statValue:0.035,weight:25},
+    {milestoneLevel:15,statType:'ATK_RATE',grade:'EPIC',statValue:0.055,weight:25},
+    {milestoneLevel:15,statType:'ATK_RATE',grade:'LEGENDARY',statValue:0.085,weight:25},
+    {milestoneLevel:15,statType:'ATK_RATE',grade:'ANCIENT',statValue:0.13,weight:25},
+    {milestoneLevel:15,statType:'DEF_RATE',grade:'NORMAL',statValue:0.01,weight:20},
+    {milestoneLevel:15,statType:'DEF_RATE',grade:'RARE',statValue:0.018,weight:20},
+    {milestoneLevel:15,statType:'DEF_RATE',grade:'EPIC',statValue:0.03,weight:20},
+    {milestoneLevel:15,statType:'DEF_RATE',grade:'LEGENDARY',statValue:0.045,weight:20},
+    {milestoneLevel:15,statType:'DEF_RATE',grade:'ANCIENT',statValue:0.07,weight:20},
+    {milestoneLevel:20,statType:'CRIT_RATE',grade:'NORMAL',statValue:0.012,weight:25},
+    {milestoneLevel:20,statType:'CRIT_RATE',grade:'RARE',statValue:0.02,weight:25},
+    {milestoneLevel:20,statType:'CRIT_RATE',grade:'EPIC',statValue:0.032,weight:25},
+    {milestoneLevel:20,statType:'CRIT_RATE',grade:'LEGENDARY',statValue:0.05,weight:25},
+    {milestoneLevel:20,statType:'CRIT_RATE',grade:'ANCIENT',statValue:0.075,weight:25},
+    {milestoneLevel:20,statType:'CRIT_DMG',grade:'NORMAL',statValue:0.04,weight:25},
+    {milestoneLevel:20,statType:'CRIT_DMG',grade:'RARE',statValue:0.07,weight:25},
+    {milestoneLevel:20,statType:'CRIT_DMG',grade:'EPIC',statValue:0.11,weight:25},
+    {milestoneLevel:20,statType:'CRIT_DMG',grade:'LEGENDARY',statValue:0.17,weight:25},
+    {milestoneLevel:20,statType:'CRIT_DMG',grade:'ANCIENT',statValue:0.25,weight:25},
+    {milestoneLevel:20,statType:'ATK_RATE',grade:'NORMAL',statValue:0.025,weight:25},
+    {milestoneLevel:20,statType:'ATK_RATE',grade:'RARE',statValue:0.045,weight:25},
+    {milestoneLevel:20,statType:'ATK_RATE',grade:'EPIC',statValue:0.07,weight:25},
+    {milestoneLevel:20,statType:'ATK_RATE',grade:'LEGENDARY',statValue:0.11,weight:25},
+    {milestoneLevel:20,statType:'ATK_RATE',grade:'ANCIENT',statValue:0.17,weight:25},
+    {milestoneLevel:20,statType:'HP_RATE',grade:'NORMAL',statValue:0.015,weight:25},
+    {milestoneLevel:20,statType:'HP_RATE',grade:'RARE',statValue:0.025,weight:25},
+    {milestoneLevel:20,statType:'HP_RATE',grade:'EPIC',statValue:0.04,weight:25},
+    {milestoneLevel:20,statType:'HP_RATE',grade:'LEGENDARY',statValue:0.06,weight:25},
+    {milestoneLevel:20,statType:'HP_RATE',grade:'ANCIENT',statValue:0.10,weight:25},
+    {milestoneLevel:25,statType:'CRIT_RATE',grade:'NORMAL',statValue:0.015,weight:20},
+    {milestoneLevel:25,statType:'CRIT_RATE',grade:'RARE',statValue:0.025,weight:20},
+    {milestoneLevel:25,statType:'CRIT_RATE',grade:'EPIC',statValue:0.04,weight:20},
+    {milestoneLevel:25,statType:'CRIT_RATE',grade:'LEGENDARY',statValue:0.065,weight:20},
+    {milestoneLevel:25,statType:'CRIT_RATE',grade:'ANCIENT',statValue:0.10,weight:20},
+    {milestoneLevel:25,statType:'CRIT_DMG',grade:'NORMAL',statValue:0.05,weight:20},
+    {milestoneLevel:25,statType:'CRIT_DMG',grade:'RARE',statValue:0.09,weight:20},
+    {milestoneLevel:25,statType:'CRIT_DMG',grade:'EPIC',statValue:0.14,weight:20},
+    {milestoneLevel:25,statType:'CRIT_DMG',grade:'LEGENDARY',statValue:0.22,weight:20},
+    {milestoneLevel:25,statType:'CRIT_DMG',grade:'ANCIENT',statValue:0.35,weight:20},
+    {milestoneLevel:25,statType:'ATK_RATE',grade:'NORMAL',statValue:0.03,weight:20},
+    {milestoneLevel:25,statType:'ATK_RATE',grade:'RARE',statValue:0.055,weight:20},
+    {milestoneLevel:25,statType:'ATK_RATE',grade:'EPIC',statValue:0.09,weight:20},
+    {milestoneLevel:25,statType:'ATK_RATE',grade:'LEGENDARY',statValue:0.14,weight:20},
+    {milestoneLevel:25,statType:'ATK_RATE',grade:'ANCIENT',statValue:0.22,weight:20},
+    {milestoneLevel:25,statType:'DEF_RATE',grade:'NORMAL',statValue:0.015,weight:20},
+    {milestoneLevel:25,statType:'DEF_RATE',grade:'RARE',statValue:0.025,weight:20},
+    {milestoneLevel:25,statType:'DEF_RATE',grade:'EPIC',statValue:0.04,weight:20},
+    {milestoneLevel:25,statType:'DEF_RATE',grade:'LEGENDARY',statValue:0.065,weight:20},
+    {milestoneLevel:25,statType:'DEF_RATE',grade:'ANCIENT',statValue:0.10,weight:20},
+    {milestoneLevel:25,statType:'HP_RATE',grade:'NORMAL',statValue:0.02,weight:20},
+    {milestoneLevel:25,statType:'HP_RATE',grade:'RARE',statValue:0.035,weight:20},
+    {milestoneLevel:25,statType:'HP_RATE',grade:'EPIC',statValue:0.055,weight:20},
+    {milestoneLevel:25,statType:'HP_RATE',grade:'LEGENDARY',statValue:0.085,weight:20},
+    {milestoneLevel:25,statType:'HP_RATE',grade:'ANCIENT',statValue:0.13,weight:20},
+    {milestoneLevel:30,statType:'CRIT_RATE',grade:'NORMAL',statValue:0.02,weight:20},
+    {milestoneLevel:30,statType:'CRIT_RATE',grade:'RARE',statValue:0.035,weight:20},
+    {milestoneLevel:30,statType:'CRIT_RATE',grade:'EPIC',statValue:0.055,weight:20},
+    {milestoneLevel:30,statType:'CRIT_RATE',grade:'LEGENDARY',statValue:0.085,weight:20},
+    {milestoneLevel:30,statType:'CRIT_RATE',grade:'ANCIENT',statValue:0.13,weight:20},
+    {milestoneLevel:30,statType:'CRIT_DMG',grade:'NORMAL',statValue:0.06,weight:20},
+    {milestoneLevel:30,statType:'CRIT_DMG',grade:'RARE',statValue:0.11,weight:20},
+    {milestoneLevel:30,statType:'CRIT_DMG',grade:'EPIC',statValue:0.18,weight:20},
+    {milestoneLevel:30,statType:'CRIT_DMG',grade:'LEGENDARY',statValue:0.28,weight:20},
+    {milestoneLevel:30,statType:'CRIT_DMG',grade:'ANCIENT',statValue:0.45,weight:20},
+    {milestoneLevel:30,statType:'ATK_RATE',grade:'NORMAL',statValue:0.04,weight:20},
+    {milestoneLevel:30,statType:'ATK_RATE',grade:'RARE',statValue:0.07,weight:20},
+    {milestoneLevel:30,statType:'ATK_RATE',grade:'EPIC',statValue:0.11,weight:20},
+    {milestoneLevel:30,statType:'ATK_RATE',grade:'LEGENDARY',statValue:0.18,weight:20},
+    {milestoneLevel:30,statType:'ATK_RATE',grade:'ANCIENT',statValue:0.28,weight:20},
+    {milestoneLevel:30,statType:'DEF_RATE',grade:'NORMAL',statValue:0.02,weight:20},
+    {milestoneLevel:30,statType:'DEF_RATE',grade:'RARE',statValue:0.035,weight:20},
+    {milestoneLevel:30,statType:'DEF_RATE',grade:'EPIC',statValue:0.055,weight:20},
+    {milestoneLevel:30,statType:'DEF_RATE',grade:'LEGENDARY',statValue:0.085,weight:20},
+    {milestoneLevel:30,statType:'DEF_RATE',grade:'ANCIENT',statValue:0.13,weight:20},
+    {milestoneLevel:30,statType:'HP_RATE',grade:'NORMAL',statValue:0.025,weight:20},
+    {milestoneLevel:30,statType:'HP_RATE',grade:'RARE',statValue:0.045,weight:20},
+    {milestoneLevel:30,statType:'HP_RATE',grade:'EPIC',statValue:0.07,weight:20},
+    {milestoneLevel:30,statType:'HP_RATE',grade:'LEGENDARY',statValue:0.11,weight:20},
+    {milestoneLevel:30,statType:'HP_RATE',grade:'ANCIENT',statValue:0.17,weight:20},
+  ];
+
+  const T_MILESTONE_GRADE_RATE = [
+    {enhanceLevel:5,grade:'NORMAL',rate:0.60},{enhanceLevel:5,grade:'RARE',rate:0.30},{enhanceLevel:5,grade:'EPIC',rate:0.08},{enhanceLevel:5,grade:'LEGENDARY',rate:0.02},{enhanceLevel:5,grade:'ANCIENT',rate:0.00},
+    {enhanceLevel:10,grade:'NORMAL',rate:0.45},{enhanceLevel:10,grade:'RARE',rate:0.35},{enhanceLevel:10,grade:'EPIC',rate:0.14},{enhanceLevel:10,grade:'LEGENDARY',rate:0.05},{enhanceLevel:10,grade:'ANCIENT',rate:0.01},
+    {enhanceLevel:15,grade:'NORMAL',rate:0.30},{enhanceLevel:15,grade:'RARE',rate:0.35},{enhanceLevel:15,grade:'EPIC',rate:0.22},{enhanceLevel:15,grade:'LEGENDARY',rate:0.10},{enhanceLevel:15,grade:'ANCIENT',rate:0.03},
+    {enhanceLevel:20,grade:'NORMAL',rate:0.15},{enhanceLevel:20,grade:'RARE',rate:0.30},{enhanceLevel:20,grade:'EPIC',rate:0.30},{enhanceLevel:20,grade:'LEGENDARY',rate:0.18},{enhanceLevel:20,grade:'ANCIENT',rate:0.07},
+    {enhanceLevel:25,grade:'NORMAL',rate:0.05},{enhanceLevel:25,grade:'RARE',rate:0.20},{enhanceLevel:25,grade:'EPIC',rate:0.35},{enhanceLevel:25,grade:'LEGENDARY',rate:0.28},{enhanceLevel:25,grade:'ANCIENT',rate:0.12},
+    {enhanceLevel:30,grade:'NORMAL',rate:0.00},{enhanceLevel:30,grade:'RARE',rate:0.10},{enhanceLevel:30,grade:'EPIC',rate:0.30},{enhanceLevel:30,grade:'LEGENDARY',rate:0.35},{enhanceLevel:30,grade:'ANCIENT',rate:0.25},
+  ];
+
+  const T_MILESTONE_REROLL = [
+    { milestoneLevel:'ALL', rerollCostType1:'ENHANCE_STONE', rerollCostAmount1:50, rerollCostType2:'GOLD', rerollCostAmount2:5000, lockCostType1:'PROTECT_STONE', lockCostAmount1:1, lockCostType2:'', lockCostAmount2:0 },
+  ];
+
+  // ============================================================
+  // CONFIG & HELPERS
+  // ============================================================
+  const MILESTONE_SLOT_CONFIG = [
+    { id: 1, unlockLevel: 5, statCount: 3, label: 'Lv.5' },
+    { id: 2, unlockLevel: 10, statCount: 4, label: 'Lv.10' },
+    { id: 3, unlockLevel: 15, statCount: 5, label: 'Lv.15' },
+    { id: 4, unlockLevel: 20, statCount: 6, label: 'Lv.20' },
+    { id: 5, unlockLevel: 25, statCount: 7, label: 'Lv.25' },
+    { id: 6, unlockLevel: 30, statCount: 8, label: 'Lv.30' },
+  ];
+
+  const SLOT_ICONS = {
+    SLOT_WEAPON: '🪄', SLOT_HAT: '🎩', SLOT_ROBE: '👘', SLOT_BOTTOM: '👖',
+    SLOT_GLOVE: '🧤', SLOT_SHOE: '👢', SLOT_CLOAK: '🧥', SLOT_RING: '💍',
+    SLOT_NECKLACE: '📿', SLOT_EARRING: '✨',
+  };
+
+  const SLOT_GRID_AREA = {
+    SLOT_HAT: 'hat', SLOT_EARRING: 'ear', SLOT_NECKLACE: 'neck',
+    SLOT_WEAPON: 'wep', SLOT_ROBE: 'robe', SLOT_CLOAK: 'cloak',
+    SLOT_GLOVE: 'glove', SLOT_BOTTOM: 'bot', SLOT_RING: 'ring', SLOT_SHOE: 'shoe',
+  };
+
+  const STAT_NAMES = {
+    'CRIT_RATE': '치명타 확률', 'CRIT_DMG': '치명타 데미지', 'ATK_RATE': '공격력 %',
+    'DEF_RATE': '방어력 %', 'HP_RATE': '체력 %', 'FINAL_DMG_RATE': '최종 데미지 %',
+  };
+
+  const GRADE_NAMES = { 'NORMAL': '일반', 'RARE': '레어', 'EPIC': '에픽', 'LEGENDARY': '전설', 'ANCIENT': '고대' };
+  const GRADE_ORDER = ['NORMAL','RARE','EPIC','LEGENDARY','ANCIENT'];
+  const COST_ICONS = { ENHANCE_STONE: '💎', GOLD: '🪙', PROTECT_STONE: '🛡️' };
+
+  // ============================================================
+  // GAME STATE
+  // ============================================================
+  let state = {
+    slots: {},
+    milestoneSlots: {},   // { SLOT_WEAPON: { 1: [{statType, grade, statValue, locked},...], 2: [], 3: [] }, ... }
+    inventory: { ENHANCE_STONE: 99999, GOLD: 9999999, PROTECT_STONE: 999 },
+    selectedSlotId: null,
+    activeMilestoneTab: 1,
+    infiniteMode: false,
+    stats: { totalAttempts: 0, totalSuccess: 0, totalFail: 0, totalStoneSpent: 0, totalGoldSpent: 0, totalRerolls: 0 },
+    achievedTotalMilestones: new Set(),
+  };
+
+  function initState() {
+    state.slots = {};
+    state.milestoneSlots = {};
+    T_EQUIP_SLOT.forEach(s => {
+      state.slots[s.slotId] = { level: 0, failStreak: 0, maxLevel: s.maxEnhanceLevel };
+      state.milestoneSlots[s.slotId] = {};
+      MILESTONE_SLOT_CONFIG.forEach(c => {
+        state.milestoneSlots[s.slotId][c.id] = [];
+      });
+    });
+    state.inventory = { ENHANCE_STONE: 99999, GOLD: 9999999, PROTECT_STONE: 999 };
+    state.selectedSlotId = null;
+    state.activeMilestoneTab = 1;
+    state.infiniteMode = false;
+    state.stats = { totalAttempts: 0, totalSuccess: 0, totalFail: 0, totalStoneSpent: 0, totalGoldSpent: 0, totalRerolls: 0 };
+    state.achievedTotalMilestones = new Set();
+  }
+
+  // ============================================================
+  // TABLE LOOKUP
+  // ============================================================
+  function getEnhanceRow(slotId, level) {
+    return T_SLOT_ENHANCE.find(r => r.slotId === slotId && r.level === level)
+        || T_SLOT_ENHANCE.find(r => r.slotId === 'ALL' && r.level === level);
+  }
+
+  function getStarCount(slotId, level) {
+    let stars = 0;
+    T_SLOT_MILESTONE.forEach(m => {
+      if ((m.slotId === slotId || m.slotId === 'ALL') && level >= m.level) {
+        stars = Math.max(stars, m.starDisplay);
+      }
+    });
+    return stars;
+  }
+
+  function getTotalLevel() {
+    return Object.values(state.slots).reduce((sum, s) => sum + s.level, 0);
+  }
+
+  function getNearestGradeLevel(enhanceLevel) {
+    const levels = [...new Set(T_MILESTONE_GRADE_RATE.map(r => r.enhanceLevel))].sort((a, b) => a - b);
+    let best = levels[0];
+    for (const l of levels) {
+      if (l <= enhanceLevel) best = l;
+    }
+    return best;
+  }
+
+  function getRerollRow(milestoneLevel) {
+    return T_MILESTONE_REROLL.find(r => String(r.milestoneLevel) === String(milestoneLevel))
+        || T_MILESTONE_REROLL.find(r => r.milestoneLevel === 'ALL');
+  }
+
+  function isMilestoneSlotOpen(slotId, msId) {
+    return state.milestoneSlots[slotId][msId].length > 0;
+  }
+
+  function getMilestoneSlotOpenCount(slotId) {
+    let count = 0;
+    MILESTONE_SLOT_CONFIG.forEach(c => {
+      if (state.milestoneSlots[slotId][c.id].length > 0) count++;
+    });
+    return count;
+  }
+
+  // ============================================================
+  // GRADE ROLLING
+  // ============================================================
+  function weightedRandom(items, weightFn) {
+    const totalWeight = items.reduce((sum, item) => sum + weightFn(item), 0);
+    if (totalWeight <= 0) return items[0];
+    let rand = Math.random() * totalWeight;
+    for (const item of items) {
+      rand -= weightFn(item);
+      if (rand <= 0) return item;
+    }
+    return items[items.length - 1];
+  }
+
+  function rollMilestoneStat(milestoneLevel, enhanceLevel) {
+    // Step 1: Get pool for this milestoneLevel
+    const poolEntries = T_MILESTONE_STAT_POOL.filter(p => p.milestoneLevel === milestoneLevel);
+    if (poolEntries.length === 0) return null;
+
+    // Step 2: Pick statType (weighted)
+    const statTypes = [...new Set(poolEntries.map(p => p.statType))];
+    const chosenStatType = weightedRandom(
+      statTypes.map(st => ({ statType: st, weight: poolEntries.find(p => p.statType === st).weight })),
+      item => item.weight
+    ).statType;
+
+    // Step 3: Pick grade (rate-based, using nearest grade level)
+    const gradeLevel = getNearestGradeLevel(enhanceLevel);
+    const gradeRates = T_MILESTONE_GRADE_RATE.filter(g => g.enhanceLevel === gradeLevel);
+    if (gradeRates.length === 0) return null;
+    const chosenGrade = weightedRandom(gradeRates, item => item.rate).grade;
+
+    // Step 4: Look up value
+    const entry = poolEntries.find(p => p.statType === chosenStatType && p.grade === chosenGrade);
+    if (!entry) return null;
+
+    return { statType: chosenStatType, grade: chosenGrade, statValue: entry.statValue };
+  }
+
+  // ============================================================
+  // ENHANCEMENT LOGIC
+  // ============================================================
+  function canAfford(row) {
+    if (state.infiniteMode) return true;
+    if (row.costAmount1 > 0 && (state.inventory[row.costType1] || 0) < row.costAmount1) return false;
+    if (row.costAmount2 > 0 && (state.inventory[row.costType2] || 0) < row.costAmount2) return false;
+    return true;
+  }
+
+  function deductCost(row) {
+    if (state.infiniteMode) return;
+    if (row.costAmount1 > 0) state.inventory[row.costType1] -= row.costAmount1;
+    if (row.costAmount2 > 0) state.inventory[row.costType2] -= row.costAmount2;
+    state.stats.totalStoneSpent += row.costAmount1;
+    state.stats.totalGoldSpent += row.costAmount2;
+  }
+
+  function doEnhance(slotId) {
+    const slot = state.slots[slotId];
+    const slotInfo = T_EQUIP_SLOT.find(s => s.slotId === slotId);
+    if (slot.level >= slotInfo.maxEnhanceLevel) return { type: 'max' };
+
+    const targetLevel = slot.level + 1;
+    const row = getEnhanceRow(slotId, targetLevel);
+    if (!row) return { type: 'error', msg: 'No enhance data' };
+    if (!canAfford(row)) return { type: 'poor' };
+
+    deductCost(row);
+    state.stats.totalAttempts++;
+
+    let success = false;
+    let actualRate = row.successRate;
+    if (row.isSafe) {
+      success = true;
+      actualRate = 1.0;
+    } else {
+      actualRate = Math.min(1.0, row.successRate + slot.failStreak * row.failBonusRate);
+      success = Math.random() < actualRate;
+    }
+
+    const result = {
+      slotId, slotName: slotInfo.slotName,
+      fromLevel: slot.level, targetLevel, actualRate,
+      isSafe: row.isSafe, costStone: row.costAmount1, costGold: row.costAmount2,
+      failType: row.failType, milestone: null, milestoneSlotOpened: null,
+      milestoneNewStats: [], totalMilestone: null,
+    };
+
+    if (success) {
+      result.type = 'success';
+      slot.level = targetLevel;
+      slot.failStreak = 0;
+      state.stats.totalSuccess++;
+
+      // Check for milestone slot openings
+      MILESTONE_SLOT_CONFIG.forEach(config => {
+        if (targetLevel === config.unlockLevel && state.milestoneSlots[slotId][config.id].length === 0) {
+          // Open milestone slot - roll all stats
+          const newStats = [];
+          for (let i = 0; i < config.statCount; i++) {
+            const stat = rollMilestoneStat(config.unlockLevel, targetLevel);
+            if (stat) {
+              const entry = { ...stat, locked: false };
+              state.milestoneSlots[slotId][config.id].push(entry);
+              newStats.push(entry);
+            }
+          }
+          result.milestoneSlotOpened = config;
+          result.milestoneNewStats = newStats;
+        }
+      });
+
+      // Check star milestone (visual only)
+      const milestone = T_SLOT_MILESTONE.find(m =>
+        (m.slotId === slotId || m.slotId === 'ALL') && m.level === targetLevel);
+      if (milestone) result.milestone = milestone;
+
+      // Check total milestone
+      const total = getTotalLevel();
+      T_SLOT_TOTAL_MILESTONE.forEach(tm => {
+        if (total >= tm.totalLevel && !state.achievedTotalMilestones.has(tm.totalLevel)) {
+          state.achievedTotalMilestones.add(tm.totalLevel);
+          result.totalMilestone = tm;
+        }
+      });
+    } else {
+      result.type = 'fail';
+      state.stats.totalFail++;
+      slot.failStreak++;
+      if (row.failType === 'DOWN_1') {
+        slot.level = Math.max(0, slot.level - 1);
+        result.newLevel = slot.level;
+      } else if (row.failType === 'RESET') {
+        slot.level = 0;
+        result.newLevel = 0;
+      }
+    }
+
+    return result;
+  }
+
+  function doBatchEnhance(slotId, count) {
+    const results = [];
+    for (let i = 0; i < count; i++) {
+      const r = doEnhance(slotId);
+      results.push(r);
+      if (r.type === 'max' || r.type === 'poor' || r.type === 'error') break;
+    }
+    return results;
+  }
+
+  // ============================================================
+  // REROLL LOGIC (per milestone sub-slot)
+  // ============================================================
+  function calcRerollCost(slotId, msSlotId) {
+    const stats = state.milestoneSlots[slotId]?.[msSlotId];
+    if (!stats || stats.length === 0) return null;
+
+    const config = MILESTONE_SLOT_CONFIG.find(c => c.id === msSlotId);
+    const row = getRerollRow(config.unlockLevel);
+    if (!row) return null;
+
+    const lockedCount = stats.filter(s => s.locked).length;
+    const unlockedCount = stats.length - lockedCount;
+    if (unlockedCount === 0) return null;
+
+    const costs = {};
+    if (row.rerollCostType1 && row.rerollCostAmount1 > 0) {
+      costs[row.rerollCostType1] = (costs[row.rerollCostType1] || 0) + row.rerollCostAmount1;
+    }
+    if (row.rerollCostType2 && row.rerollCostAmount2 > 0) {
+      costs[row.rerollCostType2] = (costs[row.rerollCostType2] || 0) + row.rerollCostAmount2;
+    }
+    if (lockedCount > 0) {
+      if (row.lockCostType1 && row.lockCostAmount1 > 0) {
+        costs[row.lockCostType1] = (costs[row.lockCostType1] || 0) + row.lockCostAmount1 * lockedCount;
+      }
+      if (row.lockCostType2 && row.lockCostAmount2 > 0) {
+        costs[row.lockCostType2] = (costs[row.lockCostType2] || 0) + row.lockCostAmount2 * lockedCount;
+      }
+    }
+    return { costs, lockedCount, unlockedCount };
+  }
+
+  function canAffordReroll(costInfo) {
+    if (state.infiniteMode) return true;
+    for (const [type, amount] of Object.entries(costInfo.costs)) {
+      if ((state.inventory[type] || 0) < amount) return false;
+    }
+    return true;
+  }
+
+  function doReroll(slotId, msSlotId) {
+    const costInfo = calcRerollCost(slotId, msSlotId);
+    if (!costInfo) return false;
+    if (!canAffordReroll(costInfo)) return false;
+
+    if (!state.infiniteMode) {
+      for (const [type, amount] of Object.entries(costInfo.costs)) {
+        state.inventory[type] -= amount;
+      }
+    }
+    state.stats.totalRerolls++;
+
+    const config = MILESTONE_SLOT_CONFIG.find(c => c.id === msSlotId);
+    const slot = state.slots[slotId];
+    const stats = state.milestoneSlots[slotId][msSlotId];
+
+    stats.forEach(stat => {
+      if (!stat.locked) {
+        const newStat = rollMilestoneStat(config.unlockLevel, slot.level);
+        if (newStat) {
+          stat.statType = newStat.statType;
+          stat.grade = newStat.grade;
+          stat.statValue = newStat.statValue;
+        }
+      }
+    });
+
+    return true;
+  }
+
+  // ============================================================
+  // AGGREGATE STATS
+  // ============================================================
+  function getAllMilestoneStats() {
+    const allStats = [];
+    Object.entries(state.milestoneSlots).forEach(([slotId, msSlots]) => {
+      Object.entries(msSlots).forEach(([msId, stats]) => {
+        stats.forEach(stat => {
+          allStats.push({ slotId, milestoneSlotId: parseInt(msId), ...stat });
+        });
+      });
+    });
+    return allStats;
+  }
+
+  function getAggregatedStats() {
+    const allStats = getAllMilestoneStats();
+    const agg = {};
+    allStats.forEach(s => {
+      if (!agg[s.statType]) agg[s.statType] = { total: 0, count: 0, grades: {} };
+      agg[s.statType].total += s.statValue;
+      agg[s.statType].count++;
+      agg[s.statType].grades[s.grade] = (agg[s.statType].grades[s.grade] || 0) + 1;
+    });
+    return agg;
+  }
+
+  // ============================================================
+  // UI RENDERING
+  // ============================================================
+  function renderEquipGrid() {
+    const grid = document.getElementById('equipGrid');
+    grid.innerHTML = T_EQUIP_SLOT.map(s => {
+      const slot = state.slots[s.slotId];
+      const stars = getStarCount(s.slotId, slot.level);
+      const isSelected = state.selectedSlotId === s.slotId;
+      const isMax = slot.level >= s.maxEnhanceLevel;
+      const msOpenCount = getMilestoneSlotOpenCount(s.slotId);
+      const area = SLOT_GRID_AREA[s.slotId];
+      const icon = SLOT_ICONS[s.slotId];
+
+      return `
+        <div class="equip-cell ${isSelected ? 'selected' : ''} ${isMax ? 'max-level' : ''}"
+             style="grid-area:${area}"
+             onclick="selectSlot('${s.slotId}')">
+          <div class="text-lg leading-none">${icon}</div>
+          <div class="text-[9px] text-slate-400 mt-0.5 leading-tight">${s.slotName}</div>
+          <div class="text-[11px] font-bold ${isMax ? 'text-yellow-400' : 'text-indigo-400'}">Lv.${slot.level}</div>
+          ${stars > 0 ? `<div class="star text-[7px] leading-none">${'★'.repeat(stars)}</div>` : ''}
+          ${msOpenCount > 0 ? `
+            <div class="ms-dots">
+              ${MILESTONE_SLOT_CONFIG.map(c =>
+                `<div class="ms-dot ${state.milestoneSlots[s.slotId][c.id].length > 0 ? 'open' : 'locked'}"></div>`
+              ).join('')}
+            </div>
+          ` : ''}
+        </div>`;
+    }).join('');
+  }
+
+  function renderEnhancePanel() {
+    const panel = document.getElementById('enhancePanel');
+    if (!state.selectedSlotId) {
+      panel.innerHTML = `
+        <div class="text-center text-slate-500 py-20">
+          <p class="text-4xl mb-3">⚔️</p>
+          <p class="text-lg">장비 슬롯을 선택하세요</p>
+          <p class="text-sm mt-1">왼쪽 장비 아이콘을 클릭</p>
+        </div>`;
+      return;
+    }
+
+    const slotId = state.selectedSlotId;
+    const slotInfo = T_EQUIP_SLOT.find(s => s.slotId === slotId);
+    const slot = state.slots[slotId];
+    const isMax = slot.level >= slotInfo.maxEnhanceLevel;
+    const stars = getStarCount(slotId, slot.level);
+    const currentRow = getEnhanceRow(slotId, slot.level);
+    const nextRow = !isMax ? getEnhanceRow(slotId, slot.level + 1) : null;
+
+    let rateDisplay = '';
+    let costDisplay = '';
+    let nextStatRate = '';
+
+    if (nextRow) {
+      const actualRate = Math.min(1.0, nextRow.successRate + slot.failStreak * nextRow.failBonusRate);
+      const bonusRate = slot.failStreak * nextRow.failBonusRate;
+      rateDisplay = nextRow.isSafe
+        ? '<span class="text-green-400 font-bold text-2xl">안전 강화 (100%)</span>'
+        : `<div class="text-center">
+            <span class="text-3xl font-bold ${actualRate >= 0.7 ? 'text-green-400' : actualRate >= 0.4 ? 'text-yellow-400' : actualRate >= 0.2 ? 'text-orange-400' : 'text-red-400'}">${(actualRate * 100).toFixed(1)}%</span>
+            ${bonusRate > 0 ? `<div class="text-xs text-blue-400 mt-0.5">기본 ${(nextRow.successRate*100).toFixed(0)}% + 보정 ${(bonusRate*100).toFixed(1)}% (${slot.failStreak}연패)</div>` : ''}
+           </div>`;
+      costDisplay = `
+        <div class="flex gap-4 justify-center text-sm">
+          <span class="text-yellow-400">💎 ${nextRow.costAmount1.toLocaleString()}</span>
+          <span class="text-yellow-300">🪙 ${nextRow.costAmount2.toLocaleString()}</span>
+        </div>`;
+      nextStatRate = `<span class="text-indigo-400">+${(nextRow.statRate * 100).toFixed(0)}%</span>`;
+    }
+
+    const failTypeLabel = nextRow ? { KEEP: '레벨 유지', DOWN_1: '1레벨 하락', RESET: '초기화' }[nextRow.failType] : '';
+    const failTypeColor = nextRow ? { KEEP: 'text-green-400', DOWN_1: 'text-orange-400', RESET: 'text-red-400' }[nextRow.failType] : '';
+
+    // Render milestone tabs section
+    const milestoneTabsHtml = renderMilestoneTabs(slotId);
+
+    panel.innerHTML = `
+      <div class="text-center mb-5">
+        <div class="text-3xl mb-1">${SLOT_ICONS[slotId]}</div>
+        <h2 class="text-2xl font-bold text-white mb-1">${slotInfo.slotName}</h2>
+        <div class="star text-xl mb-1">${'★'.repeat(stars)}${'☆'.repeat(6 - stars)}</div>
+        <div class="text-4xl font-black ${isMax ? 'text-yellow-400' : 'text-white'}">
+          Lv. ${slot.level} ${isMax ? '<span class="text-lg">MAX</span>' : ''}
+        </div>
+        <div class="text-sm text-slate-400 mt-1">스탯 증폭: <span class="text-white font-semibold">+${((currentRow?.statRate || 0) * 100).toFixed(0)}%</span> ${!isMax && nextRow ? `→ ${nextStatRate}` : ''}</div>
+      </div>
+
+      ${!isMax ? `
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-5 mb-4">
+        <div class="text-center text-xs text-slate-400 mb-2">Lv.${slot.level} → Lv.${slot.level + 1} 성공 확률</div>
+        <div class="text-center mb-3">${rateDisplay}</div>
+        <div class="text-center text-xs mb-3">
+          <span class="${failTypeColor}">실패 시: ${failTypeLabel}</span>
+        </div>
+        <div class="mb-4">${costDisplay}</div>
+        <div class="flex gap-3">
+          <button onclick="enhanceOne()" id="enhanceBtn"
+            class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold rounded-lg transition-colors text-lg">
+            강화 <span class="text-xs opacity-60">[Space]</span>
+          </button>
+          <button onclick="enhanceTen()" id="enhance10Btn"
+            class="flex-1 py-3 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white font-bold rounded-lg transition-colors text-lg">
+            10연속 <span class="text-xs opacity-60">[Q]</span>
+          </button>
+        </div>
+      </div>
+      ` : `
+      <div class="bg-yellow-900/20 border border-yellow-700/50 rounded-xl p-5 text-center mb-4">
+        <p class="text-yellow-400 font-bold text-lg">최대 레벨 도달!</p>
+        <p class="text-yellow-400/70 text-sm mt-1">이 슬롯은 더 이상 강화할 수 없습니다</p>
+      </div>
+      `}
+
+      ${milestoneTabsHtml}
+    `;
+  }
+
+  function renderMilestoneTabs(slotId) {
+    const slot = state.slots[slotId];
+    const activeTab = state.activeMilestoneTab;
+
+    // Tab buttons
+    const tabsHtml = MILESTONE_SLOT_CONFIG.map(config => {
+      const isOpen = state.milestoneSlots[slotId][config.id].length > 0;
+      const isActive = activeTab === config.id;
+      const isLocked = !isOpen;
+
+      return `
+        <div class="ms-tab ${isActive ? 'active' : ''} ${isLocked ? 'locked' : ''} text-slate-400"
+             onclick="${isLocked ? `showLockedMsg(${config.unlockLevel})` : `switchMilestoneTab(${config.id})`}">
+          ${isLocked ? '🔒 ' : ''}${config.label} ${isOpen ? `(${config.statCount})` : ''}
+        </div>`;
+    }).join('');
+
+    // Active tab content
+    const activeConfig = MILESTONE_SLOT_CONFIG.find(c => c.id === activeTab);
+    const isOpen = state.milestoneSlots[slotId][activeTab].length > 0;
+    let contentHtml = '';
+
+    if (!isOpen) {
+      // Locked state
+      contentHtml = `
+        <div class="bg-slate-800/50 rounded-b-xl border border-slate-700 border-t-0 p-6 text-center">
+          <div class="text-4xl mb-3 opacity-30">🔒</div>
+          <p class="text-slate-400 font-semibold">Lv.${activeConfig.unlockLevel} 도달 시 해금</p>
+          <p class="text-slate-500 text-sm mt-1">현재 Lv.${slot.level} / 필요 Lv.${activeConfig.unlockLevel}</p>
+          <div class="w-full bg-slate-700 rounded-full h-2 mt-3 max-w-xs mx-auto">
+            <div class="bg-indigo-500 h-2 rounded-full transition-all" style="width:${Math.min(100, slot.level / activeConfig.unlockLevel * 100).toFixed(0)}%"></div>
+          </div>
+          <p class="text-slate-500 text-xs mt-2">해금 시 마일스톤 스텟 ${activeConfig.statCount}개 획득</p>
+        </div>`;
+    } else {
+      // Open - show stats + reroll
+      const stats = state.milestoneSlots[slotId][activeTab];
+      const costInfo = calcRerollCost(slotId, activeTab);
+      const canReroll = costInfo && (state.infiniteMode || canAffordReroll(costInfo));
+      const allLocked = costInfo && costInfo.unlockedCount === 0;
+      const costDisplayHtml = costInfo
+        ? Object.entries(costInfo.costs).map(([t, a]) =>
+          `<span class="${t === 'PROTECT_STONE' ? 'text-emerald-400' : t === 'GOLD' ? 'text-yellow-300' : 'text-yellow-400'}">${COST_ICONS[t] || t} ${a.toLocaleString()}</span>`
+        ).join(' ')
+        : '';
+
+      // Grade rate info for current level
+      const gradeLevel = getNearestGradeLevel(slot.level);
+      const gradeRates = T_MILESTONE_GRADE_RATE.filter(g => g.enhanceLevel === gradeLevel);
+
+      contentHtml = `
+        <div class="bg-slate-800 rounded-b-xl border border-slate-700 border-t-0 p-4">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs text-slate-500">클릭하여 잠금/해제</span>
+            <span class="text-xs text-slate-500">리롤 등급 참조: Lv.${gradeLevel}</span>
+          </div>
+          <div class="space-y-1.5 mb-3">
+            ${stats.map((ms, idx) => `
+              <div class="flex items-center gap-2 text-sm grade-bg-${ms.grade.toLowerCase()} border rounded px-3 py-1.5 cursor-pointer transition-all ${ms.locked ? 'ring-2 ring-emerald-500/50' : 'hover:brightness-110'}"
+                   onclick="toggleLock('${slotId}', ${activeTab}, ${idx})">
+                <span class="text-lg flex-shrink-0">${ms.locked ? '🔒' : '🔓'}</span>
+                <div class="flex-1 flex items-center justify-between">
+                  <div>
+                    <span class="grade-${ms.grade.toLowerCase()} font-semibold">[${GRADE_NAMES[ms.grade]}]</span>
+                    <span class="text-slate-200 ml-1">${STAT_NAMES[ms.statType]}</span>
+                  </div>
+                  <span class="grade-${ms.grade.toLowerCase()} font-bold">+${(ms.statValue * 100).toFixed(1)}%</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="border-t border-slate-700 pt-3">
+            ${gradeRates.length > 0 ? `
+            <div class="flex gap-1 mb-2 flex-wrap">
+              ${gradeRates.filter(g => g.rate > 0).map(g => `
+                <span class="text-[10px] px-1.5 py-0.5 rounded grade-bg-${g.grade.toLowerCase()} border grade-${g.grade.toLowerCase()}">${GRADE_NAMES[g.grade]} ${(g.rate*100).toFixed(0)}%</span>
+              `).join('')}
+            </div>` : ''}
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs text-slate-400">리롤 비용</span>
+              <div class="text-xs flex gap-2">${costDisplayHtml}</div>
+            </div>
+            ${costInfo && costInfo.lockedCount > 0 ? `<div class="text-xs text-emerald-400 mb-2">잠금 ${costInfo.lockedCount}개 적용 중</div>` : ''}
+            <button onclick="rerollStats()"
+              class="w-full py-2 ${allLocked ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : canReroll ? 'bg-teal-600 hover:bg-teal-500 active:bg-teal-700 text-white' : 'bg-slate-700 text-slate-500 cursor-not-allowed'} font-bold rounded-lg transition-colors"
+              ${allLocked || !canReroll ? 'disabled' : ''}>
+              ${allLocked ? '최소 1개는 잠금 해제 필요' : canReroll ? '🔄 리롤' : '재화 부족'}
+            </button>
+          </div>
+        </div>`;
+    }
+
+    return `
+      <div class="mt-4">
+        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">마일스톤 슬롯</h3>
+        <div class="flex flex-wrap gap-y-1">${tabsHtml}</div>
+        ${contentHtml}
+      </div>`;
+  }
+
+  function renderTotalMilestones() {
+    const total = getTotalLevel();
+    document.getElementById('totalLevel').textContent = total;
+    document.getElementById('totalBar').style.width = `${Math.min(100, total / 300 * 100).toFixed(1)}%`;
+
+    const container = document.getElementById('totalMilestones');
+    container.innerHTML = T_SLOT_TOTAL_MILESTONE.map(tm => {
+      const achieved = state.achievedTotalMilestones.has(tm.totalLevel);
+      return `
+        <div class="flex items-center justify-between text-xs py-1 px-2 rounded ${achieved ? 'bg-indigo-900/40 text-white' : 'text-slate-500'}">
+          <span>${achieved ? '✅' : '⬜'} Lv.${tm.totalLevel}</span>
+          <span>${tm.bonusDesc}${tm.titleReward ? ` [${tm.titleReward}]` : ''}</span>
+        </div>`;
+    }).join('');
+  }
+
+  function renderStats() {
+    const s = state.stats;
+    const rate = s.totalAttempts > 0 ? (s.totalSuccess / s.totalAttempts * 100).toFixed(1) : '0.0';
+    document.getElementById('statsPanel').innerHTML = `
+      <div class="grid grid-cols-2 gap-2">
+        <div class="bg-slate-800 rounded p-2 text-center">
+          <div class="text-xs text-slate-400">총 시도</div>
+          <div class="font-bold text-white">${s.totalAttempts.toLocaleString()}</div>
+        </div>
+        <div class="bg-slate-800 rounded p-2 text-center">
+          <div class="text-xs text-slate-400">성공률</div>
+          <div class="font-bold text-green-400">${rate}%</div>
+        </div>
+        <div class="bg-slate-800 rounded p-2 text-center">
+          <div class="text-xs text-green-400">성공</div>
+          <div class="font-bold text-white">${s.totalSuccess.toLocaleString()}</div>
+        </div>
+        <div class="bg-slate-800 rounded p-2 text-center">
+          <div class="text-xs text-red-400">실패</div>
+          <div class="font-bold text-white">${s.totalFail.toLocaleString()}</div>
+        </div>
+        <div class="bg-slate-800 rounded p-2 text-center">
+          <div class="text-xs text-yellow-400">강화석 소모</div>
+          <div class="font-bold text-white">${s.totalStoneSpent.toLocaleString()}</div>
+        </div>
+        <div class="bg-slate-800 rounded p-2 text-center">
+          <div class="text-xs text-yellow-300">골드 소모</div>
+          <div class="font-bold text-white">${s.totalGoldSpent.toLocaleString()}</div>
+        </div>
+        <div class="bg-slate-800 rounded p-2 text-center col-span-2">
+          <div class="text-xs text-teal-400">리롤 횟수</div>
+          <div class="font-bold text-white">${s.totalRerolls.toLocaleString()}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderMilestoneStatsPanel() {
+    const panel = document.getElementById('milestoneStatsPanel');
+    const allStats = getAllMilestoneStats();
+
+    if (allStats.length === 0) {
+      panel.innerHTML = '<div class="text-slate-500 text-xs">아직 획득한 마일스톤 스텟이 없습니다</div>';
+      return;
+    }
+
+    // Aggregated view
+    const agg = getAggregatedStats();
+    const gradeCount = {};
+    GRADE_ORDER.forEach(g => gradeCount[g] = 0);
+    allStats.forEach(s => gradeCount[s.grade]++);
+
+    panel.innerHTML = `
+      <div class="text-xs text-slate-400 mb-2">총 ${allStats.length}개 스텟</div>
+      <div class="flex gap-1 mb-3 flex-wrap">
+        ${GRADE_ORDER.map(g => gradeCount[g] > 0 ? `
+          <span class="grade-bg-${g.toLowerCase()} border rounded px-2 py-0.5 text-xs grade-${g.toLowerCase()}">${GRADE_NAMES[g]} x${gradeCount[g]}</span>
+        ` : '').join('')}
+      </div>
+      <div class="space-y-2">
+        ${Object.entries(agg).map(([statType, data]) => `
+          <div class="bg-slate-800 rounded p-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-slate-300">${STAT_NAMES[statType]}</span>
+              <span class="text-sm font-bold text-white">+${(data.total * 100).toFixed(1)}%</span>
+            </div>
+            <div class="flex gap-1 mt-1">
+              ${GRADE_ORDER.map(g => data.grades[g] ? `
+                <span class="text-[9px] grade-${g.toLowerCase()}">${GRADE_NAMES[g]}x${data.grades[g]}</span>
+              ` : '').join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- Per-slot breakdown toggle -->
+      <button onclick="toggleSlotBreakdown()" class="text-xs text-slate-500 hover:text-slate-300 mt-3 w-full text-center">
+        <span id="breakdownToggle">▼ 슬롯별 상세보기</span>
+      </button>
+      <div id="slotBreakdown" class="hidden mt-2 space-y-2">
+        ${T_EQUIP_SLOT.map(s => {
+          const msSlots = state.milestoneSlots[s.slotId];
+          const hasStats = Object.values(msSlots).some(arr => arr.length > 0);
+          if (!hasStats) return '';
+          return `
+            <div class="bg-slate-800/50 rounded p-2">
+              <div class="text-xs text-slate-400 font-semibold mb-1">${SLOT_ICONS[s.slotId]} ${s.slotName} (Lv.${state.slots[s.slotId].level})</div>
+              ${MILESTONE_SLOT_CONFIG.map(config => {
+                const stats = msSlots[config.id];
+                if (stats.length === 0) return '';
+                return `
+                  <div class="ml-2 mb-1">
+                    <div class="text-[10px] text-slate-500">${config.label}</div>
+                    ${stats.map(ms => `
+                      <div class="flex items-center justify-between text-[10px] py-0.5">
+                        <span>${ms.locked ? '🔒' : ''}<span class="grade-${ms.grade.toLowerCase()}">[${GRADE_NAMES[ms.grade]}]</span> ${STAT_NAMES[ms.statType]}</span>
+                        <span class="grade-${ms.grade.toLowerCase()}">+${(ms.statValue*100).toFixed(1)}%</span>
+                      </div>
+                    `).join('')}
+                  </div>`;
+              }).join('')}
+            </div>`;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  function renderInventory() {
+    document.getElementById('stoneCount').textContent = state.infiniteMode ? '∞' : state.inventory.ENHANCE_STONE.toLocaleString();
+    document.getElementById('goldCount').textContent = state.infiniteMode ? '∞' : state.inventory.GOLD.toLocaleString();
+    document.getElementById('protectCount').textContent = state.infiniteMode ? '∞' : (state.inventory.PROTECT_STONE || 0).toLocaleString();
+  }
+
+  function renderAll() {
+    renderEquipGrid();
+    renderEnhancePanel();
+    renderTotalMilestones();
+    renderStats();
+    renderMilestoneStatsPanel();
+    renderInventory();
+  }
+
+  // ============================================================
+  // LOG
+  // ============================================================
+  function addLog(result) {
+    const log = document.getElementById('logArea');
+    const time = new Date().toLocaleTimeString('ko-KR', { hour12: false });
+    let line = '';
+    let cls = '';
+
+    if (result.type === 'success') {
+      cls = 'text-green-400';
+      line = `[${time}] ✅ ${result.slotName} Lv.${result.fromLevel}→${result.targetLevel} 성공! (${(result.actualRate*100).toFixed(1)}%)${result.isSafe ? ' [안전]' : ''}`;
+    } else if (result.type === 'fail') {
+      cls = 'text-red-400';
+      const penalty = result.failType === 'KEEP' ? '' : result.failType === 'DOWN_1' ? ` [Lv.${result.newLevel}로 하락]` : ' [Lv.0으로 초기화]';
+      line = `[${time}] ❌ ${result.slotName} Lv.${result.fromLevel}→${result.targetLevel} 실패 (${(result.actualRate*100).toFixed(1)}%)${penalty}`;
+    } else if (result.type === 'poor') {
+      cls = 'text-yellow-400';
+      line = `[${time}] ⚠️ 재화 부족!`;
+    } else if (result.type === 'max') {
+      cls = 'text-yellow-400';
+      line = `[${time}] 🏆 ${result.slotName || ''} 이미 최대 레벨입니다`;
+    }
+
+    const div = document.createElement('div');
+    div.className = `${cls} slide-in`;
+    div.textContent = line;
+    log.prepend(div);
+
+    // Milestone slot opened log
+    if (result.milestoneSlotOpened) {
+      const config = result.milestoneSlotOpened;
+      const msDiv = document.createElement('div');
+      msDiv.className = 'text-indigo-400 font-bold slide-in';
+      msDiv.textContent = `[${time}]    🎰 마일스톤 슬롯 해금! ${config.label} (스텟 ${config.statCount}개)`;
+      log.prepend(msDiv);
+
+      result.milestoneNewStats.forEach(ms => {
+        const statDiv = document.createElement('div');
+        statDiv.className = `grade-${ms.grade.toLowerCase()} slide-in ml-4`;
+        statDiv.textContent = `[${time}]       → [${GRADE_NAMES[ms.grade]}] ${STAT_NAMES[ms.statType]} +${(ms.statValue*100).toFixed(1)}%`;
+        log.prepend(statDiv);
+      });
+    }
+
+    if (result.totalMilestone) {
+      const tm = result.totalMilestone;
+      const tmDiv = document.createElement('div');
+      tmDiv.className = 'text-indigo-400 font-bold slide-in';
+      tmDiv.textContent = `[${time}]    🏅 전체 합산 마일스톤 달성! Lv.${tm.totalLevel} - ${tm.bonusDesc}${tm.titleReward ? ` [칭호: ${tm.titleReward}]` : ''}`;
+      log.prepend(tmDiv);
+    }
+
+    while (log.children.length > 500) log.removeChild(log.lastChild);
+  }
+
+  function addBatchLog(results) {
+    const log = document.getElementById('logArea');
+    const time = new Date().toLocaleTimeString('ko-KR', { hour12: false });
+    const successes = results.filter(r => r.type === 'success').length;
+    const fails = results.filter(r => r.type === 'fail').length;
+    const total = successes + fails;
+
+    if (total > 0) {
+      const slotName = results[0].slotName;
+      const startLevel = results[0].fromLevel;
+      const endLevel = state.slots[results[0].slotId].level;
+
+      const div = document.createElement('div');
+      div.className = 'text-violet-400 font-bold slide-in border-b border-slate-700 pb-1 mb-1';
+      div.textContent = `[${time}] 🔟 ${slotName} 10연속 결과: ${total}회 시도, 성공 ${successes}회, 실패 ${fails}회 (Lv.${startLevel}→${endLevel})`;
+      log.prepend(div);
+
+      // Log milestone slot openings and total milestones
+      results.forEach(r => {
+        if (r.totalMilestone) {
+          const tmDiv = document.createElement('div');
+          tmDiv.className = 'text-indigo-400 font-bold slide-in';
+          tmDiv.textContent = `[${time}]    🏅 전체 합산 마일스톤 달성! Lv.${r.totalMilestone.totalLevel} - ${r.totalMilestone.bonusDesc}`;
+          log.prepend(tmDiv);
+        }
+        if (r.milestoneSlotOpened) {
+          const config = r.milestoneSlotOpened;
+          const msDiv = document.createElement('div');
+          msDiv.className = 'text-indigo-400 font-bold slide-in';
+          msDiv.textContent = `[${time}]    🎰 마일스톤 슬롯 해금! ${config.label} (스텟 ${config.statCount}개)`;
+          log.prepend(msDiv);
+
+          r.milestoneNewStats.forEach(ms => {
+            const statDiv = document.createElement('div');
+            statDiv.className = `grade-${ms.grade.toLowerCase()} slide-in ml-4`;
+            statDiv.textContent = `[${time}]       → [${GRADE_NAMES[ms.grade]}] ${STAT_NAMES[ms.statType]} +${(ms.statValue*100).toFixed(1)}%`;
+            log.prepend(statDiv);
+          });
+        }
+      });
+    }
+  }
+
+  function clearLog() {
+    document.getElementById('logArea').innerHTML = '';
+  }
+
+  // ============================================================
+  // USER ACTIONS
+  // ============================================================
+  function selectSlot(slotId) {
+    state.selectedSlotId = slotId;
+    // Auto-switch to first available milestone tab
+    state.activeMilestoneTab = 1;
+    for (let i = MILESTONE_SLOT_CONFIG.length; i >= 1; i--) {
+      if (state.milestoneSlots[slotId][i].length > 0) {
+        state.activeMilestoneTab = i;
+        break;
+      }
+    }
+    renderAll();
+  }
+
+  function enhanceOne() {
+    if (!state.selectedSlotId) return;
+    const result = doEnhance(state.selectedSlotId);
+    addLog(result);
+
+    // Auto-switch to newly opened milestone tab
+    if (result.milestoneSlotOpened) {
+      state.activeMilestoneTab = result.milestoneSlotOpened.id;
+    }
+
+    renderAll();
+
+    const btn = document.getElementById('enhanceBtn');
+    if (btn) {
+      btn.classList.add(result.type === 'success' ? 'pop' : 'shake');
+      setTimeout(() => btn.classList.remove('pop', 'shake'), 400);
+    }
+  }
+
+  function enhanceTen() {
+    if (!state.selectedSlotId) return;
+    const results = doBatchEnhance(state.selectedSlotId, 10);
+    addBatchLog(results);
+
+    // Auto-switch to latest opened milestone tab
+    const lastOpened = results.filter(r => r.milestoneSlotOpened).pop();
+    if (lastOpened) {
+      state.activeMilestoneTab = lastOpened.milestoneSlotOpened.id;
+    }
+
+    renderAll();
+  }
+
+  function switchMilestoneTab(tabId) {
+    state.activeMilestoneTab = tabId;
+    renderEnhancePanel();
+  }
+
+  function showLockedMsg(unlockLevel) {
+    // Switch to this tab anyway to show the locked message
+    const config = MILESTONE_SLOT_CONFIG.find(c => c.unlockLevel === unlockLevel);
+    if (config) {
+      state.activeMilestoneTab = config.id;
+      renderEnhancePanel();
+    }
+  }
+
+  function toggleLock(slotId, msSlotId, statIdx) {
+    const stats = state.milestoneSlots[slotId][msSlotId];
+    if (stats[statIdx]) {
+      stats[statIdx].locked = !stats[statIdx].locked;
+      renderEnhancePanel();
+      renderMilestoneStatsPanel();
+    }
+  }
+
+  function rerollStats() {
+    if (!state.selectedSlotId) return;
+    const success = doReroll(state.selectedSlotId, state.activeMilestoneTab);
+    if (success) {
+      const log = document.getElementById('logArea');
+      const time = new Date().toLocaleTimeString('ko-KR', { hour12: false });
+      const slotName = T_EQUIP_SLOT.find(s => s.slotId === state.selectedSlotId)?.slotName || '';
+      const config = MILESTONE_SLOT_CONFIG.find(c => c.id === state.activeMilestoneTab);
+      const stats = state.milestoneSlots[state.selectedSlotId][state.activeMilestoneTab].filter(s => !s.locked);
+
+      const div = document.createElement('div');
+      div.className = 'text-teal-400 font-bold slide-in border-b border-slate-700 pb-1 mb-1';
+      div.textContent = `[${time}] 🔄 ${slotName} ${config.label} 리롤 완료!`;
+      log.prepend(div);
+
+      stats.forEach(ms => {
+        const msDiv = document.createElement('div');
+        msDiv.className = `grade-${ms.grade.toLowerCase()} slide-in`;
+        msDiv.textContent = `[${time}]    → [${GRADE_NAMES[ms.grade]}] ${STAT_NAMES[ms.statType]} +${(ms.statValue*100).toFixed(1)}%`;
+        log.prepend(msDiv);
+      });
+
+      renderAll();
+    }
+  }
+
+  function toggleSlotBreakdown() {
+    const el = document.getElementById('slotBreakdown');
+    const toggle = document.getElementById('breakdownToggle');
+    if (el.classList.contains('hidden')) {
+      el.classList.remove('hidden');
+      toggle.textContent = '▲ 슬롯별 상세 숨기기';
+    } else {
+      el.classList.add('hidden');
+      toggle.textContent = '▼ 슬롯별 상세보기';
+    }
+  }
+
+  function resetAll() {
+    if (!confirm('모든 데이터를 초기화하시겠습니까?')) return;
+    initState();
+    clearLog();
+    renderAll();
+  }
+
+  function toggleInfinite() {
+    state.infiniteMode = !state.infiniteMode;
+    const btn = document.getElementById('infiniteBtn');
+    if (state.infiniteMode) {
+      btn.textContent = '무한 재화 ON';
+      btn.className = 'px-3 py-1 bg-green-900/50 hover:bg-green-900 text-green-300 rounded text-sm border border-green-700';
+    } else {
+      btn.textContent = '무한 재화 OFF';
+      btn.className = 'px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded text-sm border border-slate-600';
+    }
+    renderInventory();
+  }
+
+  // ============================================================
+  // KEYBOARD SHORTCUTS
+  // ============================================================
+  document.addEventListener('keydown', (e) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      enhanceOne();
+    }
+    if (e.key === 'q' || e.key === 'Q') {
+      enhanceTen();
+    }
+    // Tab switching: 1~6
+    if (e.key >= '1' && e.key <= '6') switchMilestoneTab(parseInt(e.key));
+  });
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  initState();
+  renderAll();
+  </script>
+
+</body>
+</html>

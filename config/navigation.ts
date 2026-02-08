@@ -31,6 +31,11 @@ export const navigation: NavItem[] = [
     href: '/devlog',
     icon: 'BookOpen',
   },
+  {
+    label: '기획서',
+    href: '/spec/slot-enhance',
+    icon: 'ScrollText',
+  },
 ]
 
 // 푸터 네비게이션
