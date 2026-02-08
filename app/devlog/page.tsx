@@ -21,7 +21,8 @@ export default function DevlogPage() {
       const { data, error } = await supabase
         .from('devlogs')
         .select('*')
-        .order('date', { ascending: false });
+        .order('date', { ascending: false })
+        .order('version', { ascending: true });
 
       if (error) throw error;
 
@@ -93,47 +94,59 @@ export default function DevlogPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredDevlogs.map((devlog) => (
-            <Link
-              key={devlog.id}
-              href={`/devlog/${devlog.date}`}
-              className="block bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors border border-gray-700 hover:border-gray-600"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-xl font-semibold text-white mb-2 truncate">
-                    {devlog.title}
-                  </h2>
-                  <p className="text-gray-400 text-sm mb-3 line-clamp-2">
-                    {devlog.summary}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" />
-                      {devlog.date}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Eye className="w-3.5 h-3.5" />
-                      {devlog.view_count}
-                    </span>
-                    {devlog.tags?.length > 0 && (
+          {filteredDevlogs.map((devlog) => {
+            const slug = devlog.version > 1
+              ? `${devlog.date}-v${String(devlog.version).padStart(2, '0')}`
+              : devlog.date;
+            return (
+              <Link
+                key={devlog.id}
+                href={`/devlog/${slug}`}
+                className="block bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors border border-gray-700 hover:border-gray-600"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h2 className="text-xl font-semibold text-white truncate">
+                        {devlog.title}
+                      </h2>
+                      {devlog.version > 1 && (
+                        <span className="flex-shrink-0 px-2 py-0.5 rounded text-xs font-mono bg-blue-600/20 text-blue-300 border border-blue-500/30">
+                          v{String(devlog.version).padStart(2, '0')}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-gray-400 text-sm mb-3 line-clamp-2">
+                      {devlog.summary}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
                       <span className="flex items-center gap-1">
-                        <Tag className="w-3.5 h-3.5" />
-                        {devlog.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="px-2 py-0.5 rounded-full bg-gray-700 text-gray-300"
-                          >
-                            {tag}
-                          </span>
-                        ))}
+                        <Calendar className="w-3.5 h-3.5" />
+                        {devlog.date}
                       </span>
-                    )}
+                      <span className="flex items-center gap-1">
+                        <Eye className="w-3.5 h-3.5" />
+                        {devlog.view_count}
+                      </span>
+                      {devlog.tags?.length > 0 && (
+                        <span className="flex items-center gap-1">
+                          <Tag className="w-3.5 h-3.5" />
+                          {devlog.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="px-2 py-0.5 rounded-full bg-gray-700 text-gray-300"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

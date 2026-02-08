@@ -68,6 +68,7 @@ export interface ApiResponse<T> {
 export interface Devlog {
   id: number;
   date: string;
+  version: number;
   title: string;
   summary: string;
   content: string;

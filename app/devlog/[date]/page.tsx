@@ -16,9 +16,18 @@ const CATEGORY_STYLES: Record<string, { bg: string; icon: string }> = {
   기타: { bg: 'bg-gray-500/20 text-gray-300 border-gray-500/30', icon: '📌' },
 };
 
+function parseSlug(slug: string): { date: string; version: number } {
+  const vMatch = slug.match(/^(\d{4}-\d{2}-\d{2})-v(\d+)$/);
+  if (vMatch) {
+    return { date: vMatch[1], version: parseInt(vMatch[2], 10) };
+  }
+  return { date: slug, version: 1 };
+}
+
 export default function DevlogDetailPage() {
   const params = useParams();
-  const date = params.date as string;
+  const slug = params.date as string;
+  const { date, version } = parseSlug(slug);
 
   const [devlog, setDevlog] = useState<Devlog | null>(null);
   const [workItems, setWorkItems] = useState<DevlogWorkItem[]>([]);
@@ -27,7 +36,7 @@ export default function DevlogDetailPage() {
 
   useEffect(() => {
     if (date) fetchDevlog();
-  }, [date]);
+  }, [date, version]);
 
   const fetchDevlog = async () => {
     try {
@@ -35,6 +44,7 @@ export default function DevlogDetailPage() {
         .from('devlogs')
         .select('*')
         .eq('date', date)
+        .eq('version', version)
         .single();
 
       if (devlogError || !devlogData) {
@@ -110,7 +120,14 @@ export default function DevlogDetailPage() {
       </Link>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-3">{devlog.title}</h1>
+        <div className="flex items-center gap-3 mb-3">
+          <h1 className="text-3xl font-bold text-white">{devlog.title}</h1>
+          {devlog.version > 1 && (
+            <span className="px-2.5 py-1 rounded text-sm font-mono bg-blue-600/20 text-blue-300 border border-blue-500/30">
+              v{String(devlog.version).padStart(2, '0')}
+            </span>
+          )}
+        </div>
         <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
           <span className="flex items-center gap-1.5">
             <Calendar className="w-4 h-4" />
