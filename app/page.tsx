@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ScrollText } from 'lucide-react';
 
 export default function ComingSoonPage() {
   return (
@@ -25,14 +25,24 @@ export default function ComingSoonPage() {
             </div>
           </div>
 
-          {/* 개발일지 바로가기 */}
-          <Link
-            href="/devlog"
-            className="group inline-flex items-center gap-3 px-8 py-4 bg-slate-800/60 backdrop-blur-sm rounded-xl font-semibold border border-slate-700 hover:border-blue-500/50 hover:bg-slate-800/80 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10"
-          >
-            <span className="text-slate-300 group-hover:text-white transition-colors">개발일지 보기</span>
-            <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
-          </Link>
+          {/* 바로가기 버튼들 */}
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
+            <Link
+              href="/devlog"
+              className="group inline-flex items-center gap-3 px-8 py-4 bg-slate-800/60 backdrop-blur-sm rounded-xl font-semibold border border-slate-700 hover:border-blue-500/50 hover:bg-slate-800/80 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10"
+            >
+              <span className="text-slate-300 group-hover:text-white transition-colors">개발일지 보기</span>
+              <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
+            </Link>
+            <Link
+              href="/spec/slot-enhance"
+              className="group inline-flex items-center gap-3 px-8 py-4 bg-slate-800/60 backdrop-blur-sm rounded-xl font-semibold border border-slate-700 hover:border-violet-500/50 hover:bg-slate-800/80 transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/10"
+            >
+              <ScrollText className="w-5 h-5 text-slate-400 group-hover:text-violet-400 transition-all" />
+              <span className="text-slate-300 group-hover:text-white transition-colors">기획서 & 시뮬레이터</span>
+              <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-violet-400 group-hover:translate-x-1 transition-all" />
+            </Link>
+          </div>
 
           {/* 소셜 링크 (선택사항 - 필요시 활성화) */}
           {/* <div className="mt-16 flex gap-6 justify-center">
