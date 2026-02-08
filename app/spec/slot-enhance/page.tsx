@@ -317,7 +317,9 @@ export default function SlotEnhanceSpecPage() {
           <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
             <Link href="/" className="hover:text-white transition-colors">홈</Link>
             <span>/</span>
-            <span className="text-gray-300">기획서</span>
+            <Link href="/spec" className="hover:text-white transition-colors">기획서</Link>
+            <span>/</span>
+            <span className="text-gray-300">장비 슬롯 강화</span>
           </div>
           <h1 className="text-3xl font-bold mb-2">
             장비 슬롯 강화 시스템

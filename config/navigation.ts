@@ -33,7 +33,7 @@ export const navigation: NavItem[] = [
   },
   {
     label: '기획서',
-    href: '/spec/slot-enhance',
+    href: '/spec',
     icon: 'ScrollText',
   },
 ]

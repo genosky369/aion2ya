@@ -35,7 +35,7 @@ export default function ComingSoonPage() {
               <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
             </Link>
             <Link
-              href="/spec/slot-enhance"
+              href="/spec"
               className="group inline-flex items-center gap-3 px-8 py-4 bg-slate-800/60 backdrop-blur-sm rounded-xl font-semibold border border-slate-700 hover:border-violet-500/50 hover:bg-slate-800/80 transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/10"
             >
               <ScrollText className="w-5 h-5 text-slate-400 group-hover:text-violet-400 transition-all" />
