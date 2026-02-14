@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ScrollText, Swords, FlaskConical } from 'lucide-react';
+import { ScrollText, Swords, FlaskConical, Gamepad2 } from 'lucide-react';
 
 const THEME = {
   bg: 'from-slate-950 via-slate-900 to-slate-950',
@@ -18,6 +18,14 @@ const specs = [
     icon: Swords,
     gradient: 'from-violet-600 to-purple-600',
     tags: ['시스템 설계', '시뮬레이터', 'v0.5'],
+  },
+  {
+    title: '레니아워의 메타 대법관',
+    description: 'E-sports 예측 시뮬레이션 프로토타입 · 인터넷 방송 스타일 · 2v2 데스매치',
+    href: '/spec/reniehour',
+    icon: Gamepad2,
+    gradient: 'from-rose-600 to-orange-600',
+    tags: ['프로토타입', '시뮬레이터', 'E-sports'],
   },
 ];
 
